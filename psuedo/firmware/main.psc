@@ -15,7 +15,7 @@ const byte[] I2C_CAP_GET_COMMAND;
 // Data structs
 ////////////////////////////////////////////////////////////////////////////////
 
-struct gyro_data {
+struct motionData {
 	// Gyroscope data
 	float gyro_x;
 	float gyro_y;
@@ -38,7 +38,10 @@ struct gyro_data {
 
 boolean standByMode;
 
-main() {
+byte[] prevCapData;
+
+// Main entry point of the program
+void main(void) {
 	
 	while (true) {
 		if (controlModule.isStandByPressed() == true) {
@@ -50,41 +53,57 @@ main() {
 			continue; // Continue to next iteration of loop
 		}
 
-		byte[12] capData = getCapacitiveSensorData()
+		if (controlModule.isPairPressed() == true) {
+			if (bluetooth.enterPairingMode() == -1) {
+				LOG_ERROR("Failed to pair to a Bluetooth device");
+			}
+		}
 
-		var dofData = getNineSensorData()
-		Bluetooth.sendData(dofData)
+		byte[12] capData = getCapacitiveSensorData()
+		for (i = 0; i < 12; ++i) {
+			if (prevCapData[i] == 0 && capData[i] == 1) { // Pressed
+				bluetooth.sendButtonUpdate(i, true);
+			} else if (prevCapData[i] == 1 && capData[i] == 0) { // Released
+				bluetooth.sendButtonUpdate(i, false);
+			} else {
+				// No change has occured
+			}
+		}
+
+		motionData motion = getMotionData();
+		bluetooth.sendMotionData(motion);
+
 	}
 
 }
 
+// Get the data from the capacitive sensor data
+//
+// returns: The data read from the capacitive sensor data
 byte[12] getCapacitveSensorData() {
-
 	byte[12] data = new byte[12];
 
-	if (i2c::selectSlave(settings::i2cCapAddr) == false) {
-		LOG_ERROR("Failed to connect to i2c device %x", settings::i2cCapAddr);
+	if (i2c.selectSlave(settings.i2cCapAddr) == false) {
+		LOG_ERROR("Failed to connect to i2c device %x", settings.i2cCapAddr);
 		return data;
 	}
 
 	// Command to get the data has been sent
-	if (i2c::sendData(I2C_CAP_GET_COMMAND, I2C_CAP_DATA_LENGTH) == false) {
-		LOG_ERROR("Failed to send command %x", settings::i2cCapAddr);
+	if (i2c.sendData(I2C_CAP_GET_COMMAND, I2C_CAP_DATA_LENGTH) == false) {
+		LOG_ERROR("Failed to send command %x", settings.i2cCapAddr);
 		return data;
 	}
 
 	// Failed to read the data from the i2c slave
-	if (i2c::readData(data, 12) == false) {
-		LOG_ERROR("");
+	if (i2c.readData(data, 12) == false) {
+		LOG_ERROR("Failed to read data from %", settings.i2cCapAddr);
 	}
 
 	return data;
 }
 
-gyro_data getNineSensorData() {
-	gyro_data data = new gyro_data();
-
-	
+motionData getMotionData() {
+	motionData data = new motionData();
 
 
 }
