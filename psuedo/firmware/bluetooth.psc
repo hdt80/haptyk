@@ -1,8 +1,7 @@
 
 const enum EVENT_TYPE {
 	BUTTON_PRESSED	= 0x01,
-	BUTTON_RELEASED = 0x02,
-	MOTION_DATA		= 0x03
+	BUTTON_RELEASED = 0x02
 };
 
 class bluetooth {
@@ -44,12 +43,12 @@ class bluetooth {
 	//		what slot the button was plugged into, and what index of the button
 	//		on the slot is.
 	//	Example:
-	//		0x13 -> First slot, 4th button (0 indexed)
+	//		0x12 -> First slot, 3th button (0 indexed)
 	// pressed - If the button is going from released to pressed, or pressed
 	//		to released
 	//
 	// returns: If the operation was successful
-	boolean sendButtonPressed(hex buttonID, boolean pressed) {
+	boolean sendButtonPressed(byte buttonID, boolean pressed) {
 		byte[2] packet = new byte[2];
 		packet[1] = buttonID;
 
@@ -61,29 +60,5 @@ class bluetooth {
 
 		return sendData(packet, 2);
 	}
-
-	// Send data to the Bluetooth device containing the data from the motion
-	// sensor
-	//
-	// data - Data from the motion sensor
-	//
-	// returns: If the operation was successful
-	boolean sendMotionData(motionData data) {
-		byte[10] packet = new byte[10];
-		packet[0] = EVENT_TYPE.MOTION_DATA;
-
-		packet[1] = data.gyro_x;
-		packet[2] = data.gyro_y;
-		pakcet[3] = data.gyro_z;
-		packet[4] = data.accel_x;
-		packet[5] = data.accel_y;
-		packet[6] = data.accel_z;
-		packet[7] = data.magno_x;
-		packet[8] = data.magno_y;
-		packet[9] = data.magno_z;
-
-		return sendData(packet, 10);
-	}
-
 
 }

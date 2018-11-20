@@ -12,27 +12,6 @@ const int I2C_CAP_DATA_LENGTH;
 const byte[] I2C_CAP_GET_COMMAND;
 
 ////////////////////////////////////////////////////////////////////////////////
-// Data structs
-////////////////////////////////////////////////////////////////////////////////
-
-struct motionData {
-	// Gyroscope data
-	float gyro_x;
-	float gyro_y;
-	float gyro_z;
-
-	// Accelerometer data
-	float accel_x;
-	float accel_y;
-	float accel_z;
-
-	// Magnometer data
-	float magno_x;
-	float magno_y;
-	float magno_z;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Main
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -70,11 +49,7 @@ void main(void) {
 			}
 		}
 
-		motionData motion = getMotionData();
-		bluetooth.sendMotionData(motion);
-
 	}
-
 }
 
 // Get the data from the capacitive sensor data
@@ -100,10 +75,4 @@ byte[12] getCapacitveSensorData() {
 	}
 
 	return data;
-}
-
-motionData getMotionData() {
-	motionData data = new motionData();
-
-
 }
