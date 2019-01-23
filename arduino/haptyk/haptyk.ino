@@ -1,15 +1,22 @@
 #include <Arduino.h>
 #include <SPI.h>
+#include <Wire.h>
 #include "Adafruit_BLE.h"
 #include "Adafruit_BluefruitLE_SPI.h"
 #include "Adafruit_BluefruitLE_UART.h"
+#include "Adafruit_MPR121.h"
 
 #include "config.h"
+
+#ifndef _BV
+#define _BV(bit) (1 << (bit)) 
+#endif
 
 // Hardware SPI
 // CS = 8, IRQ = 7, RST = 4
 
 Adafruit_BluefruitLE_SPI bt(HW_SPI_CS, HW_SPI_IRQ, HW_SPI_RST);
+Adafruit_MPR121 capacs = Adafruit_MPR121();
 
 struct packet_data_s {
 	char device_id;
@@ -40,18 +47,19 @@ void error(const char* err) {
 
 struct button_data_s get_button_data() {
 	static struct button_data_s instance;
-	instance.b0 = random(0x00, 0x02);
-	instance.b1 = random(0x00, 0x02);
-	instance.b2 = random(0x00, 0x02);
-	instance.b3 = random(0x00, 0x02);
-	instance.b4 = random(0x00, 0x02);
-	instance.b5 = random(0x00, 0x01);
-	instance.b6 = random(0x00, 0x01);
-	instance.b7 = random(0x00, 0x01);
-	instance.b8 = random(0x00, 0x01);
-	instance.b9 = random(0x00, 0x01);
-	instance.b10 = random(0x00, 0x01);
-	instance.b11 = random(0x00, 0x01);
+  uint16_t currtouched = capacs.touched();
+	instance.b0 = currtouched & _BV(0);
+	instance.b1 = currtouched & _BV(1);
+	instance.b2 = currtouched & _BV(2);
+	instance.b3 = currtouched & _BV(3);
+	instance.b4 = currtouched & _BV(4);
+	instance.b5 = currtouched & _BV(5);
+	instance.b6 = currtouched & _BV(6);
+	instance.b7 = currtouched & _BV(7);
+	instance.b8 = currtouched & _BV(8);
+	instance.b9 = currtouched & _BV(9);
+	instance.b10 = currtouched & _BV(10);
+	instance.b11 = currtouched & _BV(11);
 	return instance;
 }
 
@@ -75,6 +83,11 @@ void setup() {
 	delay(500);
 
 	Serial.begin(115200);
+ 
+  while (!Serial) { //keep from starting too fast
+    delay(10);
+  }
+  
 	Serial.println("Haptyk");
 
 	if (!bt.begin(BT_VERBOSE)) {
@@ -94,6 +107,11 @@ void setup() {
 	randomSeed(analogRead(0));
 
 	packet.device_id = HW_ID;
+
+  if (!capacs.begin(0x5A)) {
+      error("MPR121 not found, check wiring?");
+  }
+  Serial.println("MPR121 found");
 }
 
 #define BUTTON_IS_NOW_PRESSED(x) \
