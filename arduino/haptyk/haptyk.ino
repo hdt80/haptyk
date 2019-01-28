@@ -9,7 +9,7 @@
 #include "config.h"
 
 #ifndef _BV
-#define _BV(bit) (1 << (bit)) 
+#define _BV(bit) (1 << (bit))
 #endif
 
 // Hardware SPI
@@ -22,9 +22,10 @@ struct packet_data_s {
 	char device_id;
 	char packet_id;
 	char length;
-	char data[12]; // Max 12
+	char data[12]; // Max 12 needed for now
 } packet;
 
+// Contains the status of each button sensor
 struct button_data_s {
 	unsigned char b0;
 	unsigned char b1;
@@ -45,21 +46,36 @@ void error(const char* err) {
 	while(1);
 }
 
+void print_button_data(const struct button_data_s* data) {
+	Serial.print(data->b0, HEX);
+	Serial.print(data->b1, HEX);
+	Serial.print(data->b2, HEX);
+	Serial.print(data->b3, HEX);
+	Serial.print(data->b4, HEX);
+	Serial.print(data->b5, HEX);
+	Serial.print(data->b6, HEX);
+	Serial.print(data->b7, HEX);
+	Serial.print(data->b8, HEX);
+	Serial.print(data->b9, HEX);
+	Serial.print(data->b10, HEX);
+	Serial.println(data->b11, HEX);
+}
+
 struct button_data_s get_button_data() {
 	static struct button_data_s instance;
-  uint16_t currtouched = capacs.touched();
+	uint16_t currtouched = capacs.touched();
 	instance.b0 = currtouched & _BV(0);
-	instance.b1 = currtouched & _BV(1);
-	instance.b2 = currtouched & _BV(2);
-	instance.b3 = currtouched & _BV(3);
-	instance.b4 = currtouched & _BV(4);
-	instance.b5 = currtouched & _BV(5);
-	instance.b6 = currtouched & _BV(6);
-	instance.b7 = currtouched & _BV(7);
-	instance.b8 = currtouched & _BV(8);
-	instance.b9 = currtouched & _BV(9);
-	instance.b10 = currtouched & _BV(10);
-	instance.b11 = currtouched & _BV(11);
+	instance.b1 = (currtouched & _BV(1)) >> 1;
+	instance.b2 = (currtouched & _BV(2)) >> 2;
+	instance.b3 = (currtouched & _BV(3)) >> 3;
+	instance.b4 = (currtouched & _BV(4)) >> 4;
+	instance.b5 = (currtouched & _BV(5)) >> 5;
+	instance.b6 = (currtouched & _BV(6)) >> 6;
+	instance.b7 = (currtouched & _BV(7)) >> 7;
+	instance.b8 = (currtouched & _BV(8)) >> 8;
+	instance.b9 = (currtouched & _BV(9)) >> 9;
+	instance.b10 = (currtouched & _BV(10)) >> 10;
+	instance.b11 = (currtouched & _BV(11)) >> 11;
 	return instance;
 }
 
@@ -69,25 +85,25 @@ void send_packet(struct packet_data_s* data) {
 	}
 
 	bt.print(data->device_id);
-	Serial.println(data->device_id, HEX);
+	Serial.print(data->device_id, HEX);
 	bt.print(data->packet_id);
+	Serial.print(data->packet_id, HEX);
 	bt.print(data->length);
-	Serial.println(data->packet_id, HEX);
+	Serial.println(data->length, HEX);
 	for (int i = 0; i < data->length; ++i) {
 		bt.print(data->data[i]);
-		Serial.println(data->data[i], HEX);
+		Serial.print(data->data[i], HEX);
 	}
+	Serial.println("");
 }
 
 void setup() {
 	delay(500);
 
 	Serial.begin(115200);
- 
-  while (!Serial) { //keep from starting too fast
-    delay(10);
-  }
-  
+	while (!Serial) { //keep from starting too fast
+		delay(10);
+	}
 	Serial.println("Haptyk");
 
 	if (!bt.begin(BT_VERBOSE)) {
@@ -108,10 +124,10 @@ void setup() {
 
 	packet.device_id = HW_ID;
 
-  if (!capacs.begin(0x5A)) {
-      error("MPR121 not found, check wiring?");
-  }
-  Serial.println("MPR121 found");
+	if (!capacs.begin(0x5A)) {
+		error("MPR121 not found, check wiring?");
+	}
+	Serial.println("MPR121 found");
 }
 
 #define BUTTON_IS_NOW_PRESSED(x) \
@@ -128,8 +144,10 @@ void loop() {
 	}
 
 	button_data_curr = get_button_data();
+	print_button_data(&button_data_curr);
 	packet.length = 0;
 
+	// Buttons that were released, now pressed
 	if (BUTTON_IS_NOW_PRESSED(b0)) { packet.data[packet.length++] = 0x01; }
 	if (BUTTON_IS_NOW_PRESSED(b1)) { packet.data[packet.length++] = 0x02; }
 	if (BUTTON_IS_NOW_PRESSED(b2)) { packet.data[packet.length++] = 0x03; }
@@ -149,6 +167,7 @@ void loop() {
 		packet.length = 0;
 	}
 
+	// Buttons that were pressed, now released
 	if (BUTTON_NOW_NOT_PRESSED(b0)) { packet.data[packet.length++] = 0x01; }
 	if (BUTTON_NOW_NOT_PRESSED(b1)) { packet.data[packet.length++] = 0x02; }
 	if (BUTTON_NOW_NOT_PRESSED(b2)) { packet.data[packet.length++] = 0x03; }
@@ -171,5 +190,4 @@ void loop() {
 	button_data_prev = button_data_curr;
 
 	delay(5000);
-
 }
