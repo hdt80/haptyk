@@ -18,6 +18,9 @@
 Adafruit_BluefruitLE_SPI bt(HW_SPI_CS, HW_SPI_IRQ, HW_SPI_RST);
 Adafruit_MPR121 capacs = Adafruit_MPR121();
 
+// Connected to the breakout board?
+unsigned char cs_connected = 0x00;
+
 struct packet_data_s {
 	char device_id;
 	char packet_id;
@@ -63,38 +66,71 @@ void print_button_data(const struct button_data_s* data) {
 
 struct button_data_s get_button_data() {
 	static struct button_data_s instance;
-	uint16_t currtouched = capacs.touched();
-	instance.b0 = currtouched & _BV(0);
-	instance.b1 = (currtouched & _BV(1)) >> 1;
-	instance.b2 = (currtouched & _BV(2)) >> 2;
-	instance.b3 = (currtouched & _BV(3)) >> 3;
-	instance.b4 = (currtouched & _BV(4)) >> 4;
-	instance.b5 = (currtouched & _BV(5)) >> 5;
-	instance.b6 = (currtouched & _BV(6)) >> 6;
-	instance.b7 = (currtouched & _BV(7)) >> 7;
-	instance.b8 = (currtouched & _BV(8)) >> 8;
-	instance.b9 = (currtouched & _BV(9)) >> 9;
-	instance.b10 = (currtouched & _BV(10)) >> 10;
-	instance.b11 = (currtouched & _BV(11)) >> 11;
+
+	if (cs_connected != 0) {
+		uint16_t currtouched = capacs.touched();
+		instance.b0 = currtouched & _BV(0);
+		instance.b1 = (currtouched & _BV(1)) >> 1;
+		instance.b2 = (currtouched & _BV(2)) >> 2;
+		instance.b3 = (currtouched & _BV(3)) >> 3;
+		instance.b4 = (currtouched & _BV(4)) >> 4;
+		instance.b5 = (currtouched & _BV(5)) >> 5;
+		instance.b6 = (currtouched & _BV(6)) >> 6;
+		instance.b7 = (currtouched & _BV(7)) >> 7;
+		instance.b8 = (currtouched & _BV(8)) >> 8;
+		instance.b9 = (currtouched & _BV(9)) >> 9;
+		instance.b10 = (currtouched & _BV(10)) >> 10;
+		instance.b11 = (currtouched & _BV(11)) >> 11;
+	} else {
+		instance.b0 = random(0, 2);
+		instance.b1 = random(0, 2);
+		instance.b2 = random(0, 2);
+		instance.b3 = random(0, 2);
+		instance.b4 = random(0, 2);
+		instance.b5 = random(0, 2);
+		instance.b6 = random(0, 2);
+		instance.b7 = random(0, 2);
+		instance.b8 = random(0, 2);
+		instance.b9 = random(0, 2);
+		instance.b10 = random(0, 1);
+		instance.b11 = random(0, 1);
+	}
+
 	return instance;
 }
 
 void send_packet(struct packet_data_s* data) {
+	Serial.print("Sending packet ");
+	Serial.print(data->device_id);
 	if (data->length == 0) {
 		return;
 	}
 
+	u8 buffer[16];
+	buffer[0] = data->device_id;
+	buffer[1] = data->packet_id;
+	buffer[2] = data->length;
+	for (int i = 0; i < data->length; ++i) {
+		buffer[3 + i] = data->data[i];
+	}
+
+	bt.write(buffer, 3 + data->length);
+
+/*
 	bt.print(data->device_id);
 	Serial.print(data->device_id, HEX);
 	bt.print(data->packet_id);
 	Serial.print(data->packet_id, HEX);
 	bt.print(data->length);
 	Serial.println(data->length, HEX);
+	bt.write(data->data, data->length);
 	for (int i = 0; i < data->length; ++i) {
 		bt.print(data->data[i]);
 		Serial.print(data->data[i], HEX);
 	}
+	*/
 	Serial.println("");
+	//while(1);
 }
 
 void setup() {
@@ -109,25 +145,31 @@ void setup() {
 	if (!bt.begin(BT_VERBOSE)) {
 		error("Failed to begin BT module");
 	}
+	Serial.println("Began BT module");
+
 	bt.echo(false);
 	bt.info();
 	bt.verbose(false);
 
 	while (!bt.isConnected()) {
+		Serial.println("Connected?");
 		delay(500);
 	}
 	Serial.println("Connected");
 
 	bt.setMode(BLUEFRUIT_MODE_DATA);
+	Serial.println("Set mode to MODE_DATA");
+	//while(1);
 
 	randomSeed(analogRead(0));
 
 	packet.device_id = HW_ID;
 
-	if (!capacs.begin(0x5A)) {
-		error("MPR121 not found, check wiring?");
+	if (capacs.begin(0x5A)) {
+		cs_connected = 1;
 	}
-	Serial.println("MPR121 found");
+	Serial.print("Using the MPR121?");
+	Serial.println(cs_connected);
 }
 
 #define BUTTON_IS_NOW_PRESSED(x) \
@@ -163,7 +205,7 @@ void loop() {
 
 	if (packet.length > 0) {
 		packet.packet_id = PACKET_ID_PRESSED;
-		send_packet(&packet);
+		//send_packet(&packet);
 		packet.length = 0;
 	}
 
@@ -183,7 +225,7 @@ void loop() {
 
 	if (packet.length > 0) {
 		packet.packet_id = PACKET_ID_RELEASED;
-		send_packet(&packet);
+		//send_packet(&packet);
 		packet.length = 0;
 	}
 
