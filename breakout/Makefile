@@ -14,9 +14,7 @@ OBJ            = demo.o
 #MCU_TARGET     = atmega16
 #MCU_TARGET     = atmega163
 #MCU_TARGET     = atmega164p
-#MCU_TARGET     = atmega165
-#MCU_TARGET     = atmega165p
-#MCU_TARGET     = atmega168
+#MCU_TARGET     = atmega165 #MCU_TARGET     = atmega165p #MCU_TARGET     = atmega168
 #MCU_TARGET     = atmega169
 #MCU_TARGET     = atmega169p
 #MCU_TARGET     = atmega2560
@@ -27,7 +25,7 @@ OBJ            = demo.o
 #MCU_TARGET     = atmega3250
 #MCU_TARGET     = atmega329
 #MCU_TARGET     = atmega3290
-#MCU_TARGET     = atmega32u4
+MCU_TARGET     = atmega32u4
 #MCU_TARGET     = atmega48
 #MCU_TARGET     = atmega64
 #MCU_TARGET     = atmega640
@@ -37,7 +35,7 @@ OBJ            = demo.o
 #MCU_TARGET     = atmega6450
 #MCU_TARGET     = atmega649
 #MCU_TARGET     = atmega6490
-MCU_TARGET     = atmega8
+#MCU_TARGET     = atmega8
 #MCU_TARGET     = atmega8515
 #MCU_TARGET     = atmega8535
 #MCU_TARGET     = atmega88
@@ -55,7 +53,7 @@ MCU_TARGET     = atmega8
 OPTIMIZE       = -O2
 
 DEFS           =
-LIBS           =
+LIBS           = ../lufa-LUFA-170418/Demos/Device/ClassDriver/VirtualSerial ../lufa-LUFA-170418/LUFA/Drivers/USB
 
 # You should not have to change anything below here.
 
@@ -143,4 +141,51 @@ pdf: $(PRG).pdf
 
 %.png: %.fig
 	$(FIG2DEV) -L png $< $@
+
+run:
+	avrdude -p m32u4 -c avr109 -P /dev/ttyACM0 -b 57600 -D -U flash:w:$(PRG).hex:i
+
+#
+#             LUFA Library
+#     Copyright (C) Dean Camera, 2017.
+#
+#  dean [at] fourwalledcubicle [dot] com
+#           www.lufa-lib.org
+#
+# --------------------------------------
+#         LUFA Project Makefile.
+# --------------------------------------
+
+# Run "make help" for target help.
+
+MCU          = atmega32u4
+ARCH         = AVR8
+BOARD        = USBKEY
+F_CPU        = 8000000
+F_USB        = $(F_CPU)
+OPTIMIZATION = s
+TARGET       = VirtualSerial
+SRC          = $(TARGET).c Descriptors.c $(LUFA_SRC_USB)
+LUFA_PATH    = ../../../../LUFA
+CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -IConfig/
+LD_FLAGS     =
+
+# Default target
+all:
+
+# Include LUFA-specific DMBS extension modules
+DMBS_LUFA_PATH ?= $(LUFA_PATH)/Build/LUFA
+include $(DMBS_LUFA_PATH)/lufa-sources.mk
+include $(DMBS_LUFA_PATH)/lufa-gcc.mk
+
+# Include common DMBS build system modules
+DMBS_PATH      ?= $(LUFA_PATH)/Build/DMBS/DMBS
+include $(DMBS_PATH)/core.mk
+include $(DMBS_PATH)/cppcheck.mk
+include $(DMBS_PATH)/doxygen.mk
+include $(DMBS_PATH)/dfu.mk
+include $(DMBS_PATH)/gcc.mk
+include $(DMBS_PATH)/hid.mk
+include $(DMBS_PATH)/avrdude.mk
+include $(DMBS_PATH)/atprogram.mk
 
