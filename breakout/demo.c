@@ -5,7 +5,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <util/setbaud.h>
-#include <VirtualSerial.h>
+//#include <VirtualSerial.h>
 
 #include "i2c_master.h"
 /*
@@ -49,15 +49,15 @@ int main (void)
     DDRB |= (1 << DDB6);
     //ddrb = 1 & ddb5
     //PORtxn = 1
-    init_uart(9600);
+    //init_uart(9600);
     _delay_ms(1000);
-    char hello[] = "hello world!";
+    //char hello[] = "hello world!";
 
     for (;;) {
         PINC |= (1 << DDC7);
         _delay_ms(200);   
         UDR1 = 'f';
-        uart_puts(hello);
+        //uart_puts(hello);
     }
 
     return (0);
