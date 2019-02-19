@@ -1,5 +1,9 @@
+#ifndef __AVR_ATmega32U4__
+#define __AVR_ATmega32U4__
+#endif
+
 #ifndef  F_CPU
-#define F_CPU 16000000UL
+#define F_CPU 8000000UL
 #endif
 
 #include <avr/io.h>
@@ -10,6 +14,8 @@
 #define F_SCL 400000UL // SCL frequency
 #define Prescaler 1
 #define TWBR_val ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
+
+void error_light() {PORTC |= (1 << DDC6);}
 
 void i2c_init(void)
 {
@@ -24,6 +30,7 @@ uint8_t i2c_start(uint8_t address)
 	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
 	// wait for end of transmission
 	while( !(TWCR & (1<<TWINT)) );
+    error_light();
 	
 	// check if the start condition was successfully transmitted
 	if((TWSR & 0xF8) != TW_START){ return 1; }
@@ -109,7 +116,7 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 
 uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(devaddr | 0x00)) return 1;
+	if (i2c_start(devaddr)) return 1;
 
 	i2c_write(regaddr);
 
