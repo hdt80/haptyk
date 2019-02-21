@@ -6,6 +6,7 @@
 #define TOUCH_STATUS_0 0x00
 #define TOUCH_STATUS_1 0x01
 
+//raw data
 #define ELECTRODE_FILTERED_DATA_LOW_BYTE_0 0x02
 #define ELECTRODE_FILTERED_DATA_LOW_BYTE_1 0x04
 #define ELECTRODE_FILTERED_DATA_LOW_BYTE_2 0x06
@@ -21,6 +22,7 @@
 #define ELECTRODE_FILTERED_DATA_LOW_BYTE_12 0x1A
 #define ELECTRODE_FILTERED_DATA_LOW_BYTE_13 0x1C
 
+//raw data
 #define ELECTRODE_FILTERED_DATA_HIGH_BYTE_0 0x03
 #define ELECTRODE_FILTERED_DATA_HIGH_BYTE_1 0x05
 #define ELECTRODE_FILTERED_DATA_HIGH_BYTE_2 0x07
@@ -36,6 +38,7 @@
 #define ELECTRODE_FILTERED_DATA_HIGH_BYTE_12 0x1B
 #define ELECTRODE_FILTERED_DATA_HIGH_BYTE_13 0x1D
 
+//part of internal filtering
 #define BASELINE_VALUE_0 0x1E
 #define BASELINE_VALUE_1 0x1F
 #define BASELINE_VALUE_2 0x20
@@ -53,6 +56,17 @@
 //Start of Configuration Registers
 
 //0x2B - 0x40 Baseline Filtering Control Registers omitted, see AN3891 for more information
+#define MHDR 0x2B
+#define NHDR 0x2C
+#define NCLR 0x2D
+#define FDLR 0x2E
+#define MHDF 0x2F
+#define NHDF 0x30
+#define NCLF 0x31
+#define FDLF 0x32
+#define NHDT 0x33
+#define NCLT 0x34
+#define FDLT 0x35
 
 #define ELE0_TOUCH_THRESHOLD 0x41
 #define ELE1_TOUCH_THRESHOLD 0x43
@@ -86,6 +100,7 @@
 #define GLOBAL_FILTER_CDC_CONFIGURATION 0x5C
 #define GLOBAL_FILTER_CDT_CONFIGURATION 0x5D
 
+//configured by autoconfig
 #define ELE0_CHARGE_CURRENT 0x5F
 #define ELE1_CHARGE_CURRENT 0x60
 #define ELE2_CHARGE_CURRENT 0x61
@@ -100,6 +115,7 @@
 #define ELE11_CHARGE_CURRENT 0x6A
 #define ELE12_CHARGE_CURRENT 0x6B
 
+//configured by autoconfig
 #define ELE0_CHARGE_TIME 0x6C
 #define ELE1_CHARGE_TIME 0x6D
 #define ELE2_CHARGE_TIME 0x6E
@@ -120,5 +136,6 @@
 #define UPSIDE_LIMIT 0x7D
 #define LOWSIDE_LIMIT 0x7E
 #define TARGET_LEVEL 0x7F
+#define SOFT_RESET 0x80
 
 #endif

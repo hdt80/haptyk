@@ -73,7 +73,7 @@ $(PRG).elf: $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # dependency:
-demo.o: demo.c
+demo.o: demo.c i2c.c i2c.h 
 
 clean:
 	rm -rf *.o $(PRG).elf *.eps *.png *.pdf *.bak 
@@ -143,5 +143,5 @@ pdf: $(PRG).pdf
 	$(FIG2DEV) -L png $< $@
 
 run:
-	avrdude -p m32u4 -c avr109 -P /dev/ttyACM0 -b 57600 -D -U flash:w:$(PRG).hex:i
+	avrdude -p m32u4 -c avr109 -P /dev/ttyACM1 -b 57600 -D -U flash:w:$(PRG).hex:i
 
