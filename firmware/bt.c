@@ -26,7 +26,7 @@ void bt_init(void) {
 	sdep_send(&packet, NULL);
 }
 
-u8 bt_connected() {
+u8 bt_connected(void) {
 	struct sdep_packet_s packet;
 	packet.type = SDEP_MESSAGE_TYPE_COMMAND;
 	packet.id_high = 0xA0;

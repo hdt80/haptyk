@@ -9,11 +9,8 @@
 
 struct sdep_packet_s {
 	u8 type;
-	union {
-		u8 id_low;
-		u8 id_high;
-		u16 id;
-	};
+	u8 id_high;
+	u8 id_low;
 	u8 size;
 	u8 data[16];
 };

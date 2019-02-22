@@ -23,7 +23,7 @@ void bt_init(void);
 //
 // returns: 0 if the Bluetooth module is not connected to the target device
 //			1 if the Bluetooth module is connected to the target device
-u8 bt_connected();
+u8 bt_connected(void);
 
 void bt_write(u8* data, u8 len);
 

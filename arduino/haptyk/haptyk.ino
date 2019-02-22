@@ -64,6 +64,10 @@ void print_button_data(const struct button_data_s* data) {
 	Serial.println(data->b11, HEX);
 }
 
+void print_bluetooth_packet(const struct packet_data_s* data) {
+
+}
+
 struct button_data_s get_button_data() {
 	static struct button_data_s instance;
 
@@ -100,8 +104,6 @@ struct button_data_s get_button_data() {
 }
 
 void send_packet(struct packet_data_s* data) {
-	Serial.print("Sending packet ");
-	Serial.print(data->device_id);
 	if (data->length == 0) {
 		return;
 	}
@@ -114,23 +116,8 @@ void send_packet(struct packet_data_s* data) {
 		buffer[3 + i] = data->data[i];
 	}
 
+	// Write the packet in a single command
 	bt.write(buffer, 3 + data->length);
-
-/*
-	bt.print(data->device_id);
-	Serial.print(data->device_id, HEX);
-	bt.print(data->packet_id);
-	Serial.print(data->packet_id, HEX);
-	bt.print(data->length);
-	Serial.println(data->length, HEX);
-	bt.write(data->data, data->length);
-	for (int i = 0; i < data->length; ++i) {
-		bt.print(data->data[i]);
-		Serial.print(data->data[i], HEX);
-	}
-	*/
-	Serial.println("");
-	//while(1);
 }
 
 void setup() {
@@ -151,15 +138,13 @@ void setup() {
 	bt.info();
 	bt.verbose(false);
 
+	Serial.print("Connecting... ");
 	while (!bt.isConnected()) {
-		Serial.println("Connected?");
 		delay(500);
 	}
-	Serial.println("Connected");
+	Serial.println("done");
 
 	bt.setMode(BLUEFRUIT_MODE_DATA);
-	Serial.println("Set mode to MODE_DATA");
-	//while(1);
 
 	randomSeed(analogRead(0));
 
@@ -186,7 +171,7 @@ void loop() {
 	}
 
 	button_data_curr = get_button_data();
-	print_button_data(&button_data_curr);
+	//print_button_data(&button_data_curr);
 	packet.length = 0;
 
 	// Buttons that were released, now pressed
@@ -205,7 +190,7 @@ void loop() {
 
 	if (packet.length > 0) {
 		packet.packet_id = PACKET_ID_PRESSED;
-		//send_packet(&packet);
+		send_packet(&packet);
 		packet.length = 0;
 	}
 
@@ -225,11 +210,11 @@ void loop() {
 
 	if (packet.length > 0) {
 		packet.packet_id = PACKET_ID_RELEASED;
-		//send_packet(&packet);
+		send_packet(&packet);
 		packet.length = 0;
 	}
 
 	button_data_prev = button_data_curr;
 
-	delay(5000);
+	delay(100);
 }

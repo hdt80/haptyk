@@ -3,14 +3,14 @@
 #include "types.h"
 #include <avr/io.h>
 
-void spi_init();
+void spi_init(void);
 
-static inline void spi_cs_assert() {
+static inline void spi_cs_assert(void) {
 	PORTB &= ~0x10;
 	//spi_current_pins.cs_port |= spi_current_pins.cs_pin;		
 }
 
-static inline void spi_cs_negate() {
+static inline void spi_cs_negate(void) {
 	PORTB |= 0x10;
 	//spi_current_pins.cs_port &= ~spi_current_pins.cs_pin;
 }

@@ -1,56 +1,55 @@
-DEVICE_PORT=ttyACM1
-F_CPU = 16000000
-F_USB = 8000000
-ARCH = AVR8
-MCU = atmega32u4
-LUFA_PATH = lufa/LUFA
+#
+#             LUFA Library
+#     Copyright (C) Dean Camera, 2017.
+#
+#  dean [at] fourwalledcubicle [dot] com
+#           www.lufa-lib.org
+#
+# --------------------------------------
+#         LUFA Project Makefile.
+# --------------------------------------
 
-# Compiler
-GCC = avr-gcc
+# Run "make help" for target help.
 
-# Directories used for input and output
-SRCDIR = .
-BUILDDIR = build
-EXEDIR = bin
-INCLUDEDIR = .
+MCU				= atmega32u4
+ARCH         	= AVR8
+BOARD        	= USBKEY
+F_CPU        	= 8000000
+F_USB        	= $(F_CPU)
+OPTIMIZATION 	= s
+TARGET       	= haptyk
+SRC          	= $(TARGET).c $(LUFA_SRC_USB) $(LUFA_SRC_USBCLASS) \
+				  Descriptors.c usb_driver.c bt.c spi.c sdep.c print.c
 
-# Name to output the built file to
-OUTPUT_NAME = haptyk
+LUFA_PATH    	= ./lufa/LUFA
+CC_FLAGS     	= -DUSE_LUFA_CONFIG_HEADER -IConfig/
+LD_FLAGS     	=
 
-# Where the sources are located
-SRCS = $(wildcard $(SRCDIR)/*.c)
-SRCS += $(wildcard $(SRCDIR)/*/*.c)
+DEVICE_PORT		= ttyACM1
 
-# Where the compiled objects are located
-OBJS = $(patsubst $(SRCDIR)/%.c, $(BUILDDIR)/%.o, $(SRCS))
+# Default target
+all:
 
-# Flags for the compiler
-GCC_FLAGS += -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -mmcu=atmega32u4 -c -Ilufa -DF_CPU=$(F_CPU) -DF_USB=$(F_USB) -DUSE_LUFA_CONFIG_HEADER -I.
+# Include LUFA-specific DMBS extension modules
+DMBS_LUFA_PATH ?= $(LUFA_PATH)/Build/LUFA
+include $(DMBS_LUFA_PATH)/lufa-sources.mk
+include $(DMBS_LUFA_PATH)/lufa-gcc.mk
 
-# Minimake files used to dependency rebuilding
-DEPS := $(OBJS:.o=.d)
--include $(DEPS)
+# Include common DMBS build system modules
+DMBS_PATH      ?= $(LUFA_PATH)/Build/DMBS/DMBS
+include $(DMBS_PATH)/core.mk
+include $(DMBS_PATH)/cppcheck.mk
+include $(DMBS_PATH)/doxygen.mk
+include $(DMBS_PATH)/dfu.mk
+include $(DMBS_PATH)/gcc.mk
+include $(DMBS_PATH)/hid.mk
+include $(DMBS_PATH)/avrdude.mk
+include $(DMBS_PATH)/atprogram.mk
 
-# Linking all the .o files and with the libs
-build: $(OBJS)
-	$(GCC) $^ -mmcu=atmega32u4 -o ./bin/$(OUTPUT_NAME)
-	avr-objcopy -O ihex -R .eeprom ./bin/$(OUTPUT_NAME) ./bin/$(OUTPUT_NAME).hex
-
-# Compiling all the .c files into .o files
-$(OBJS): $(BUILDDIR)/%.o : $(SRCDIR)/%.c
-	$(GCC) $(GCC_FLAGS) -o "$@" "$<"
-
-# Running the created exe
 .PHONY: run
 run:
-	avrdude -F -V -c avr109 -p m32U4 -P /dev/$(DEVICE_PORT) -b 115200 -U flash:w:./bin/$(OUTPUT_NAME).hex
-	
-# Cleaning everything up
-.PHONY: clean
-clean:
-	rm -rf $(EXEDIR)/*
-	rm -rf $(BUILDDIR)/*
-	
-.PHONY: port
-port:
-	dterm /dev/${DEVICE_PORT}
+	avrdude -F -V -c avr109 -p m32u4 -P /dev/$(DEVICE_PORT) -b 115200 -U flash:w:./$(TARGET).hex
+
+.PHONY: term
+term:
+	while true; do cat /dev/$(DEVICE_PORT) 2>/dev/null; done

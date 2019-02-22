@@ -2,7 +2,9 @@
 
 #include <avr/io.h>
 
-void spi_init() {
+#include "print.h"
+
+void spi_init(void) {
 	DDRB = 0x03; // Set MOSI and clock as ouputs
 
 	SPCR = ( // DS.185
@@ -19,6 +21,10 @@ void spi_init() {
 u8 spi_transfer(u8 data) {
 	SPDR = data;
 	while (!(SPSR & (1 << SPIF)));
-	return SPDR;
+
+	u8 b = SPDR;
+
+	ht_logf("0x%02x | 0x%02x\n", data, b);
+	return b;
 }
 
