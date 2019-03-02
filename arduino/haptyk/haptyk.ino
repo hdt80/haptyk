@@ -21,6 +21,16 @@ Adafruit_MPR121 capacs = Adafruit_MPR121();
 // Connected to the breakout board?
 unsigned char cs_connected = 0x00;
 
+// Shift register to debounce the button for disconnecting to the
+//		connected target device
+u8 btn_reconnect = 0x00;
+
+// Shift register to debounce the button for recalibrating the cap. sensors
+u8 btn_recalibrate = 0x00;
+
+// If Haptyk is currently connected to a device
+u8 bt_connected = 0x00;
+
 struct packet_data_s {
 	char device_id;
 	char packet_id;
@@ -66,6 +76,12 @@ void print_button_data(const struct button_data_s* data) {
 
 void print_bluetooth_packet(const struct packet_data_s* data) {
 
+}
+
+void setup_control_buttons() {
+	// Setups an internal pull-up
+	DDRB |= (1 << DDB7);
+	PORTB |= (1 << PORTB7);
 }
 
 struct button_data_s get_button_data() {
@@ -121,8 +137,6 @@ void send_packet(struct packet_data_s* data) {
 }
 
 void setup() {
-	delay(500);
-
 	Serial.begin(115200);
 	while (!Serial) { //keep from starting too fast
 		delay(10);
@@ -138,12 +152,6 @@ void setup() {
 	bt.info();
 	bt.verbose(false);
 
-	Serial.print("Connecting... ");
-	while (!bt.isConnected()) {
-		delay(500);
-	}
-	Serial.println("done");
-
 	bt.setMode(BLUEFRUIT_MODE_DATA);
 
 	randomSeed(analogRead(0));
@@ -155,6 +163,8 @@ void setup() {
 	}
 	Serial.print("Using the MPR121?");
 	Serial.println(cs_connected);
+
+	setup_control_buttons();
 }
 
 #define BUTTON_IS_NOW_PRESSED(x) \
@@ -163,15 +173,13 @@ void setup() {
 #define BUTTON_NOW_NOT_PRESSED(x) \
 	button_data_prev.x == 1 && button_data_curr.x == 0
 
-void loop() {
-
+// Bluetooth loop
+void bt_loop() {
 	// Clear any pending data to be read
 	while (bt.available()) {
 		bt.read();
 	}
 
-	button_data_curr = get_button_data();
-	//print_button_data(&button_data_curr);
 	packet.length = 0;
 
 	// Buttons that were released, now pressed
@@ -213,8 +221,41 @@ void loop() {
 		send_packet(&packet);
 		packet.length = 0;
 	}
+}
+
+// Control loop
+void ctl_loop() {
+	// Only check the reconnect button if it isn't pressed
+	if (bt_connected != 0x00) {
+		u8 btn_reconnect_curr = PINB & 0x80;
+		if (btn_reconnect == 0x80 && btn_reconnect_curr == 0x00) {
+			Serial.println("disconnected");
+			bt_connected = 0x00;
+			bt.disconnect();
+		}
+		btn_reconnect = btn_reconnect_curr;
+	}
+
+}
+
+void loop() {
+	ctl_loop();
+
+	button_data_curr = get_button_data();
+
+	if (bt_connected == 0x00) {
+		Serial.print("Connecting... ");
+		while (!bt.isConnected()) {
+			_delay_ms(10);
+		}
+		bt_connected = 0x01;
+		Serial.println("done");
+	} else {
+		bt_loop();
+	}
 
 	button_data_prev = button_data_curr;
 
-	delay(100);
+	_delay_ms(10);
 }
+
