@@ -14,9 +14,7 @@ OBJ            = demo.o
 #MCU_TARGET     = atmega16
 #MCU_TARGET     = atmega163
 #MCU_TARGET     = atmega164p
-#MCU_TARGET     = atmega165
-#MCU_TARGET     = atmega165p
-#MCU_TARGET     = atmega168
+#MCU_TARGET     = atmega165 #MCU_TARGET     = atmega165p #MCU_TARGET     = atmega168
 #MCU_TARGET     = atmega169
 #MCU_TARGET     = atmega169p
 #MCU_TARGET     = atmega2560
@@ -55,7 +53,7 @@ MCU_TARGET     = atmega32u4
 OPTIMIZE       = -O2
 
 DEFS           =
-LIBS           =
+LIBS           = #../lufa-LUFA-170418/Demos/Device/ClassDriver/VirtualSerial ../lufa-LUFA-170418/LUFA/Drivers/USB
 
 # You should not have to change anything below here.
 
@@ -75,7 +73,7 @@ $(PRG).elf: $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # dependency:
-demo.o: demo.c
+demo.o: demo.c i2c.c i2c.h 
 
 clean:
 	rm -rf *.o $(PRG).elf *.eps *.png *.pdf *.bak 
@@ -143,4 +141,7 @@ pdf: $(PRG).pdf
 
 %.png: %.fig
 	$(FIG2DEV) -L png $< $@
+
+run:
+	avrdude -p m32u4 -c avr109 -P /dev/ttyACM1 -b 57600 -D -U flash:w:$(PRG).hex:i
 

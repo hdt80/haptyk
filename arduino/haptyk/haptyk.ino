@@ -60,7 +60,7 @@ void error(const char* err) {
 }
 
 void print_button_data(const struct button_data_s* data) {
-	Serial.print(data->b0, HEX);
+	HardwareSerial.print(data->b0, HEX);
 	Serial.print(data->b1, HEX);
 	Serial.print(data->b2, HEX);
 	Serial.print(data->b3, HEX);

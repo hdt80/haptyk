@@ -1,3 +1,7 @@
+#ifndef __AVR_ATmega32U4__
+#define __AVR_ATmega32U4__
+#endif
+
 #ifndef  F_CPU
 #define F_CPU 16000000UL
 #endif
@@ -7,24 +11,37 @@
 
 #include "i2c_master.h"
 
-#define F_SCL 100000UL // SCL frequency
+#define F_SCL 400000UL // SCL frequency
 #define Prescaler 1
 #define TWBR_val ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
 
+void error_light() {PORTC |= (1 << DDC6);}
+
 void i2c_init(void)
 {
+    //disable internal pullups for SDA, SCl
+    //PD0, PD1
+    PORTD &= ~(1 << DDD0);
+    PORTD &= ~(1 << DDD1);
+    DDRD |= (1 << DDD0) | (1 << DDD1);
+
+    //baud rate register
 	TWBR = (uint8_t)TWBR_val;
+
+    //power reduction register, enable TWi
+    PRR0 &= ~(1 << PRTWI);
+    TWSR = 0;
+    TWCR = (1 << TWEN);
 }
 
 uint8_t i2c_start(uint8_t address)
 {
 	// reset TWI control register
-	TWCR = 0;
+	//TWCR = 0;
 	// transmit START condition 
 	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
 	// wait for end of transmission
 	while( !(TWCR & (1<<TWINT)) );
-	
 	// check if the start condition was successfully transmitted
 	if((TWSR & 0xF8) != TW_START){ return 1; }
 	
@@ -109,7 +126,9 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 
 uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(devaddr | 0x00)) return 1;
+	if (i2c_start(devaddr)) {
+        return 1;
+    }
 
 	i2c_write(regaddr);
 
@@ -125,7 +144,10 @@ uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t l
 
 uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(devaddr)) return 1;
+	if (i2c_start(devaddr)) {
+    //error_light();
+        return 1;
+    }
 
 	i2c_write(regaddr);
 
