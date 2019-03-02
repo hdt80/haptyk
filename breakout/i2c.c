@@ -2,6 +2,8 @@
  * Title: A I2C library using the hardware TWI interface of a Atmega32u4
  * Created: 03.11.2014 13:20:06
  * Author: Benjamin Frank
+ * Edited by: Garrett Fechter
+ * Edits: Added WriteByte function, changed initialization
  */ 
 #include <util/twi.h>
 #include "config_defines.h"

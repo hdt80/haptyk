@@ -3,6 +3,8 @@
  *
  * Created: 03.11.2014 16:33:04
  * Author: Benjamin Frank
+ * Edited by: Garrett Fechter
+ * Edits: Created writeByte function
  */ 
 
 #ifndef I2C_H_
