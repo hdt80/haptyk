@@ -1,36 +1,25 @@
-#ifndef HAPTYK_H
-#define HAPTYK_H 
 // Kameron Ramey
 // 12 Jan 2019
-
-
 
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <glib-2.0/glib.h>
 
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/hci_lib.h>
+#include "HaptykConnect.h"
 
-#include "bluez-master/lib/uuid.h"
-#include "bluez-master/attrib/att.h"
-#include "bluez-master/btio/btio.h"
-#include "bluez-master/attrib/gattrib.h"
-#include "bluez-master/attrib/gatt.h"
-#include "bluez-master/attrib/gatttool.h"
-
-
-
+#include "bluez/lib/uuid.h"
+#include "bluez/btio/btio.h"
+#include "att.h"
+#include "gattrib.h"
+#include "gatt.h"
+#include "gatttool.h"
 
 static char * source_dev = NULL; 		// Specify client bluetooth adapter
 static char * target_dev = "E7:2F:7B:39:84:52"; // Haptyk BLE addr
 static char * addr_type = "random";       	// Haptyk BLE addr type
 static char * security_level = "low";		// Default Security
 
-
-static void connect_cb(GIOChannel *io, GError * error, gpointer data){
+void connect_cb(GIOChannel *io, GError * error, gpointer data){
 	GAttrib *attribute;
 	
 	if (error){
@@ -38,12 +27,31 @@ static void connect_cb(GIOChannel *io, GError * error, gpointer data){
 		//g_main_loop_quit(main_loop);
 	}
 	attribute = g_attrib_new(io);
+}
 
-	operation(attribute);
+void read_characteristic_cb(guint8 status, const guint8* pdu, guint16 plen,
+		gpointer user_data) {
+
+	uint8_t value[plen];
+	ssize_t vlen;
+	int i;
+
+	if (status != 0) {
+		g_printerr("Characteristic value/descriptor read failed: %s\n",
+							att_ecode2str(status));
+	}
+
+	vlen = dec_read_resp(pdu, plen, value, sizeof(value));
+	if (vlen < 0) {
+		g_printerr("Protocol error\n");
+	}
+	g_print("Characteristic value/descriptor: ");
+	for (i = 0; i < vlen; i++)
+		g_print("%02x ", value[i]);
+	g_print("\n");
 }
 
 void connect_haptyk(char * UUID, char * security){
-   	
 	GOptionContext * context;
 	GOptionGroup * gatt_group, *params_group, *char_rw_group;
 	GIOChannel * channel;
@@ -60,12 +68,11 @@ void connect_haptyk(char * UUID, char * security){
 	channel = gatt_connect(source_dev, target_dev, addr_type, 
 			security_level, 0, 0, connect_cb, &error);
 }
-static gboolean read_characteristic(gpointer data){
-	
+
+gboolean read_characteristic(gpointer data){
 	GAttrib * attribute = data;
 	
-	gatt_read_char(attrib, 0x0001, read_characteristic_cb, attribute);
+	gatt_read_char(attribute, 0x0001, read_characteristic_cb, attribute);
 	
-	return false;
+	return FALSE;
 }
-#endif
