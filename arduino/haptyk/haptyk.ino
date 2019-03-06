@@ -161,7 +161,7 @@ void setup() {
 	if (capacs.begin(0x5A)) {
 		cs_connected = 1;
 	}
-	Serial.print("Using the MPR121?");
+	Serial.print("Using the MPR121? ");
 	Serial.println(cs_connected);
 
 	setup_control_buttons();
@@ -258,4 +258,3 @@ void loop() {
 
 	_delay_ms(10);
 }
-

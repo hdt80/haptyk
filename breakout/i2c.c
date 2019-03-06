@@ -1,12 +1,8 @@
 /*
- * Title: A I2C library using the hardware TWI interface of a Atmega32u4
- * Created: 03.11.2014 13:20:06
- * Author: Benjamin Frank
+ * Originally by: Benjamin Frank
  * Edited by: Garrett Fechter
- * Edits: Added WriteByte function, changed initialization
  */ 
 #include <util/twi.h>
-#include "config_defines.h"
 #include "i2c.h"
 /*
  * Initialization of the I2C bus
@@ -115,3 +111,17 @@ void writeByte(uint8_t device, uint8_t adr, uint8_t data)
     send_i2c(data);
     stop_i2c();
 }
+
+/*
+ * Read a byte from a register
+ */
+int8_t readByte(uint8_t device, uint8_t adr) 
+{
+    connect_i2c(device, 0);
+    send_i2c(adr);
+    connect_i2c(device, 1);
+    int8_t data = read_i2c();
+    stop_i2c();
+    return data;
+}
+
