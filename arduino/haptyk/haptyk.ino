@@ -12,6 +12,8 @@
 #define _BV(bit) (1 << (bit))
 #endif
 
+#define DEBUG 1
+
 #ifdef DEBUG
 
 void MPR121_reg_dump() {
@@ -160,9 +162,9 @@ struct button_data_s get_button_data() {
 	static struct button_data_s instance;
 
 	if (cs_connected != 0) {
-        //check for OCVF fault condition
-        if (0x80 & capacs.readRegister8(MPR121_TOUCHSTATUS_H)) 
-            capacs.begin(0x5A); //and reset if occured
+    //check for OCVF fault condition
+    if (0x80 & capacs.readRegister8(MPR121_TOUCHSTATUS_H)) 
+      capacs.begin(0x5A); //and reset if occured
 
 		uint16_t currtouched = capacs.touched();
 		instance.b0 = currtouched & _BV(0);
@@ -391,7 +393,7 @@ void ctl_loop() {
 }
 
 // Main loop used by Arduino
-//
+int dumped = 0;
 void loop() {
 	ctl_loop(); // Perform control loop for any control button changes
 
@@ -416,4 +418,7 @@ void loop() {
 	button_data_prev = button_data_curr;
 
 	_delay_ms(10);
+  if (dumped == 1)
+    MPR121_reg_dump();
+  ++dumped; 
 }
