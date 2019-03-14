@@ -12,6 +12,22 @@
 #define _BV(bit) (1 << (bit))
 #endif
 
+#ifdef DEBUG
+
+void MPR121_reg_dump() {
+    Serial.println("BEGIN MPR121 REGISTER DUMP");
+      for (uint8_t i=0; i<0x7F; i++) {
+          Serial.print("$"); Serial.print(i, HEX); 
+          Serial.print(": 0x"); Serial.println(readRegister8(i));
+      }
+    Serial.println("END MPR121 REGISTER DUMP");
+}
+
+#endif DEBUG
+
+// Hardware SPI
+// CS = 8, IRQ = 7, RST = 4
+
 Adafruit_BluefruitLE_SPI bt(HW_SPI_CS, HW_SPI_IRQ, HW_SPI_RST);
 
 Adafruit_MPR121 capacs = Adafruit_MPR121();
@@ -144,6 +160,10 @@ struct button_data_s get_button_data() {
 	static struct button_data_s instance;
 
 	if (cs_connected != 0) {
+        //check for OCVF fault condition
+        if (0x80 & capacs.readRegister8(MPR121_TOUCHSTATUS_H)) 
+            capacs.begin(0x5A); //and reset if occured
+
 		uint16_t currtouched = capacs.touched();
 		instance.b0 = currtouched & _BV(0);
 		instance.b1 = (currtouched & _BV(1)) >> 1;
@@ -279,7 +299,7 @@ void setup() {
 		cs_connected = 0;
 		randomSeed(analogRead(0));
 	}
-	Serial.print("Using the MPR121?");
+	Serial.print("Using the MPR121? ");
 	Serial.println(cs_connected);
 
 	setup_control_buttons();
@@ -397,4 +417,3 @@ void loop() {
 
 	_delay_ms(10);
 }
-
