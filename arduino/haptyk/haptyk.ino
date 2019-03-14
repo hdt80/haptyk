@@ -12,6 +12,13 @@
 #define _BV(bit) (1 << (bit))
 #endif
 
+// Hardware SPI
+// CS = 8, IRQ = 7, RST = 4
+
+Adafruit_BluefruitLE_SPI bt(HW_SPI_CS, HW_SPI_IRQ, HW_SPI_RST);
+
+Adafruit_MPR121 capacs = Adafruit_MPR121();
+
 #define DEBUG 1
 
 #ifdef DEBUG
@@ -20,19 +27,12 @@ void MPR121_reg_dump() {
     Serial.println("BEGIN MPR121 REGISTER DUMP");
       for (uint8_t i=0; i<0x7F; i++) {
           Serial.print("$"); Serial.print(i, HEX); 
-          Serial.print(": 0x"); Serial.println(readRegister8(i));
+          Serial.print(": 0x"); Serial.println(capacs.readRegister8(i));
       }
     Serial.println("END MPR121 REGISTER DUMP");
 }
 
 #endif DEBUG
-
-// Hardware SPI
-// CS = 8, IRQ = 7, RST = 4
-
-Adafruit_BluefruitLE_SPI bt(HW_SPI_CS, HW_SPI_IRQ, HW_SPI_RST);
-
-Adafruit_MPR121 capacs = Adafruit_MPR121();
 
 // Connected to the breakout board?
 u8 cs_connected = 0x00;
@@ -163,8 +163,12 @@ struct button_data_s get_button_data() {
 
 	if (cs_connected != 0) {
     //check for OCVF fault condition
-    if (0x80 & capacs.readRegister8(MPR121_TOUCHSTATUS_H)) 
-      capacs.begin(0x5A); //and reset if occured
+    if (0 != (0x80 & capacs.readRegister8(MPR121_TOUCHSTATUS_H))) 
+    {
+      Serial.println("OVCF DETECTED! RESETTING...");
+       capacs.begin(0x5A); //and reset if occured   
+       Serial.println("Resetting complete.");  
+     }
 
 		uint16_t currtouched = capacs.touched();
 		instance.b0 = currtouched & _BV(0);
@@ -192,7 +196,10 @@ struct button_data_s get_button_data() {
 		instance.b9 = random(0, 2);
 		instance.b10 = random(0, 1);
 		instance.b11 = random(0, 1);
-	}
+    Serial.println("MPR121 disconnected. Reconnecting...");
+    capacs.begin(0x5A); //and reset if occured   
+    Serial.println("Reconnection complete."); 	
+    }
 
 	return instance;
 }
@@ -402,7 +409,9 @@ void loop() {
 	button_data_prev = button_data_curr;
 
 	_delay_ms(10);
+  #ifdef DEBUG
   if (dumped == 1)
     MPR121_reg_dump();
   ++dumped; 
+  #endif
 }
