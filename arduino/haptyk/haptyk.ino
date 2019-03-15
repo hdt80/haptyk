@@ -25,10 +25,12 @@ Adafruit_MPR121 capacs = Adafruit_MPR121();
 
 void MPR121_reg_dump() {
     Serial.println("BEGIN MPR121 REGISTER DUMP");
-      for (uint8_t i=0; i<0x7F; i++) {
-          Serial.print("$"); Serial.print(i, HEX); 
-          Serial.print(": 0x"); Serial.println(capacs.readRegister8(i));
-      }
+	for (uint8_t i = 0; i < 0x7F; ++i) {
+		Serial.print("$");
+		Serial.print(i, HEX);
+		Serial.print(": 0x");
+		Serial.println(capacs.readRegister8(i), HEX);
+	}
     Serial.println("END MPR121 REGISTER DUMP");
 }
 
@@ -52,6 +54,9 @@ u8 bt_response[65];
 
 // Index of the GATT characteristic to write to when updating the button data
 u8 gatt_index;
+
+// Are we currently in standby mode?
+u8 is_standby;
 
 // Contains data that will be sent to the Bluetooth chip
 //
@@ -111,8 +116,8 @@ void print_button_data(const struct button_data_s* data) {
 //
 void setup_control_buttons() {
 	// Setups an internal pull-up
-	DDRB |= (1 << DDB7);
-	PORTB |= (1 << PORTB7);
+	DDRB |= (1 << DDB7) | (1 << DDB6) | (1 << DDB5);
+	PORTB |= (1 << PORTB7) | (1 << PORTB6) | (1 << PORTB5);
 }
 
 // Setup the GATT service and characteristic to use
@@ -162,13 +167,13 @@ struct button_data_s get_button_data() {
 	static struct button_data_s instance;
 
 	if (cs_connected != 0) {
-    //check for OCVF fault condition
-    if (0 != (0x80 & capacs.readRegister8(MPR121_TOUCHSTATUS_H))) 
-    {
-      Serial.println("OVCF DETECTED! RESETTING...");
-       capacs.begin(0x5A); //and reset if occured   
-       Serial.println("Resetting complete.");  
-     }
+		//check for OCVF fault condition
+		u8 asdf = capacs.readRegister8(MPR121_TOUCHSTATUS_H);
+		if (0 != (0x80 & asdf)) {
+			Serial.println("OVCF DETECTED! RESETTING...");
+			capacs.begin(0x5A); //and reset if occured
+			Serial.println("Resetting complete.");
+		}
 
 		uint16_t currtouched = capacs.touched();
 		instance.b0 = currtouched & _BV(0);
@@ -196,9 +201,6 @@ struct button_data_s get_button_data() {
 		instance.b9 = random(0, 2);
 		instance.b10 = random(0, 1);
 		instance.b11 = random(0, 1);
-    Serial.println("MPR121 disconnected. Reconnecting...");
-    capacs.begin(0x5A); //and reset if occured   
-    Serial.println("Reconnection complete."); 	
     }
 
 	return instance;
@@ -257,7 +259,6 @@ void update_gatt(struct button_data_s* data) {
 	Serial.println(values);
 
 	bt.atcommandIntReply(values, &cmdResult);
-	bt.atcommandIntReply(F("abc"), &cmdResult);
 }
 
 // Function Arduino calls when the program starts running
@@ -280,7 +281,7 @@ void setup() {
 
 	bt.setMode(BLUEFRUIT_MODE_DATA);
 
-	setup_gatt_service();
+	//setup_gatt_service();
 
 	// Device ID doesn't change, just set it now
 	packet.device_id = HW_ID;
@@ -296,6 +297,8 @@ void setup() {
 	Serial.println(cs_connected);
 
 	setup_control_buttons();
+
+	pinMode(LED_BUILTIN, OUTPUT);
 }
 
 #define BUTTON_IS_NOW_PRESSED(x) \
@@ -306,7 +309,6 @@ void setup() {
 
 // Bluetooth loop
 void bt_loop() {
-
 	// Clear any pending data to be read
 	while (bt.available()) {
 		bt.read();
@@ -364,7 +366,7 @@ void bt_loop() {
 
 	// Any changes? Lets update the GATT characteristic with new data
 	if (gatt_update_needed != 0x00) {
-		update_gatt(&button_data_curr);
+		//update_gatt(&button_data_curr);
 	}
 }
 
@@ -381,12 +383,33 @@ void ctl_loop() {
 		}
 		btn_reconnect = btn_reconnect_curr;
 	}
+
+	u8 btn_recalibrate_curr = PINB & 0x40;
+	if (btn_recalibrate != 0x00 && btn_recalibrate_curr == 0x00) {
+		Serial.println("Recalibate");
+
+		//capacs.writeRegister(0x80, 0x63);
+		capacs.begin(0x5A);
+	}
+	btn_recalibrate = btn_recalibrate_curr;
+
+	is_standby = (PINB & 0x20) != 0x00;
 }
 
 // Main loop used by Arduino
 int dumped = 0;
+
+u8 counter = 0;
 void loop() {
 	ctl_loop(); // Perform control loop for any control button changes
+
+	if (is_standby != 0x00) {
+		digitalWrite(LED_BUILTIN, 1);
+		_delay_ms(100);
+		return;
+	} else {
+		digitalWrite(LED_BUILTIN, 0);
+	}
 
 	button_data_curr = get_button_data();
 

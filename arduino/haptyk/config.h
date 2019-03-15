@@ -1,6 +1,6 @@
 
 #define BUFFER_SIZE 128
-#define BT_VERBOSE	1
+#define BT_VERBOSE	0
 
 #define HW_ID		0x42
 
