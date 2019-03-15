@@ -4,11 +4,13 @@
 #
 CFLAGS = -g -Wall
 
-PKG_CONFIGS = $(pkg-config --cflags dbus-1)
+PKG_CONFIGS = $(pkg-config --cflags  dbus-1)
 
 INCLUDE_DIRS = -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include \
 			   -I/usr/include/glib-2.0/glib -Ibluez/src -Ibluez/gdbus \
-			   -I/usr/include/dbus-1.0 -I/usr/lib/dbus-1.0/include
+			   -I/usr/include/dbus-1.0 -I/usr/lib/dbus-1.0/include \
+			   -I/usr/lib/x86_64-linux-gnu/glib-2.0/include \
+			   -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include
 
 LIBRARIES = -lbluetooth -lglib-2.0
 
