@@ -7,6 +7,8 @@
 #include "Adafruit_MPR121.h"
 
 #include "config.h"
+#include "structs.h"
+#include "bt_gatt.h"
 
 #ifndef _BV
 #define _BV(bit) (1 << (bit))
@@ -58,32 +60,6 @@ u8 gatt_index;
 // Are we currently in standby mode?
 u8 is_standby;
 
-// Contains data that will be sent to the Bluetooth chip
-//
-struct packet_data_s {
-	char device_id;
-	char packet_id;
-	char length; // How many bytes to send
-	char data[12]; // Max 12 needed for now
-} packet;
-
-// Contains the status of each button sensor
-//
-struct button_data_s {
-	unsigned char b0;
-	unsigned char b1;
-	unsigned char b2;
-	unsigned char b3;
-	unsigned char b4;
-	unsigned char b5;
-	unsigned char b6;
-	unsigned char b7;
-	unsigned char b8;
-	unsigned char b9;
-	unsigned char b10;
-	unsigned char b11;
-} button_data_prev, button_data_curr;
-
 // Unrecoverable error has occured and Haptyk cannot continue functioning
 //
 // err - Error that occured. Will be printed to the serial interface
@@ -120,45 +96,6 @@ void setup_control_buttons() {
 	PORTB |= (1 << PORTB7) | (1 << PORTB6) | (1 << PORTB5);
 }
 
-// Setup the GATT service and characteristic to use
-//
-void setup_gatt_service() {
-	Serial.print("Starting GATT service... ");
-
-	bt.setMode(BLUEFRUIT_MODE_COMMAND);
-
-	int32_t cmdResult = 0;
-
-	bt.atcommandIntReply("AT+GATTCLEAR", &cmdResult);
-	Serial.print("Result: ");
-	Serial.println(cmdResult);
-
-	bt.atcommandIntReply("AT+GATTADDSERVICE=UUID=0x1122", &cmdResult);
-	Serial.print("Result: ");
-	Serial.println(cmdResult);
-
-	bt.println("AT+GATTADDCHAR=UUID=0x0004,PROPERTIES=0x02,"
-		"MIN_LEN=12,MAX_LEN=12,VALUE=00-00-00-00-00-00-00-00-00-00-00-00");
-	while (bt.readline(bt_response, 64)) {
-		u8 idx = bt_response[0];
-		if (idx > 0x39 || idx < 0x31) {
-			Serial.print("Invalid index: ");
-			Serial.print(idx);
-			Serial.print(" (");
-			Serial.print(idx, HEX);
-			Serial.println(")");
-		} else {
-			gatt_index = idx - 0x30;
-		}
-	}
-
-	bt.atcommandIntReply("ATZ", &cmdResult);
-	Serial.print("Result: ");
-	Serial.println(cmdResult);
-
-	Serial.println("done");
-}
-
 // Get the state of each sensor button
 //
 // returns: A button_data_s containing the state of each sensor button
@@ -189,18 +126,18 @@ struct button_data_s get_button_data() {
 		instance.b10 = (currtouched & _BV(10)) >> 10;
 		instance.b11 = (currtouched & _BV(11)) >> 11;
 	} else {
-		instance.b0 = random(0, 2);
-		instance.b1 = random(0, 2);
-		instance.b2 = random(0, 2);
-		instance.b3 = random(0, 2);
-		instance.b4 = random(0, 2);
-		instance.b5 = random(0, 2);
-		instance.b6 = random(0, 2);
-		instance.b7 = random(0, 2);
-		instance.b8 = random(0, 2);
-		instance.b9 = random(0, 2);
-		instance.b10 = random(0, 1);
-		instance.b11 = random(0, 1);
+		instance.b0 = random(0, 3);
+		instance.b1 = random(0, 3);
+		instance.b2 = random(0, 3);
+		instance.b3 = random(0, 3);
+		instance.b4 = random(0, 3);
+		instance.b5 = random(0, 3);
+		instance.b6 = random(0, 3);
+		instance.b7 = random(0, 3);
+		instance.b8 = random(0, 3);
+		instance.b9 = random(0, 3);
+		instance.b10 = random(0, 3);
+		instance.b11 = random(0, 3);
     }
 
 	return instance;
@@ -227,40 +164,6 @@ void send_packet(struct packet_data_s* data) {
 	bt.write(buffer, 3 + data->length);
 }
 
-// Update the GATT characteristic with new data
-//
-// data - Data to update the char with
-//
-void update_gatt(struct button_data_s* data) {
-	bt.setMode(BLUEFRUIT_MODE_COMMAND);
-
-	int32_t cmdResult;
-
-	// AT+GATTCHAR=1,01-01-01-01-01-01-01-01-01-01-01-01
-	// AT+GATTCHAR=1,00-00-00-00-00-01-00-00-00-00-00-00
-
-	static char values[] = "AT+GATTCHAR=1,00-00-00-00-00-00-00-00-00-00-00-00";
-
-	// Offset 14 for the AT+GATTCHAR=1, part at the start
-	values[14 + 1] = (data->b0 == 0) ? '0' : '1';
-	values[14 + 4] = (data->b1 == 0) ? '0' : '1';
-	values[14 + 7] = (data->b2 == 0) ? '0' : '1';
-	values[14 + 10] = (data->b3 == 0) ? '0' : '1';
-	values[14 + 13] = (data->b4 == 0) ? '0' : '1';
-	values[14 + 16] = (data->b5 == 0) ? '0' : '1';
-	values[14 + 19] = (data->b6 == 0) ? '0' : '1';
-	values[14 + 22] = (data->b7 == 0) ? '0' : '1';
-	values[14 + 25] = (data->b8 == 0) ? '0' : '1';
-	values[14 + 28] = (data->b9 == 0) ? '0' : '1';
-	values[14 + 31] = (data->b10 == 0) ? '0' : '1';
-	values[14 + 34] = (data->b11 == 0) ? '0' : '1';
-
-	Serial.println();
-	Serial.println(values);
-
-	bt.atcommandIntReply(values, &cmdResult);
-}
-
 // Function Arduino calls when the program starts running
 //
 void setup() {
@@ -281,7 +184,7 @@ void setup() {
 
 	bt.setMode(BLUEFRUIT_MODE_DATA);
 
-	//setup_gatt_service();
+	setup_gatt_service(&bt);
 
 	// Device ID doesn't change, just set it now
 	packet.device_id = HW_ID;
@@ -366,7 +269,7 @@ void bt_loop() {
 
 	// Any changes? Lets update the GATT characteristic with new data
 	if (gatt_update_needed != 0x00) {
-		//update_gatt(&button_data_curr);
+		update_gatt(&bt, &button_data_curr);
 	}
 }
 
@@ -387,13 +290,11 @@ void ctl_loop() {
 	u8 btn_recalibrate_curr = PINB & 0x40;
 	if (btn_recalibrate != 0x00 && btn_recalibrate_curr == 0x00) {
 		Serial.println("Recalibate");
-
-		//capacs.writeRegister(0x80, 0x63);
 		capacs.begin(0x5A);
 	}
 	btn_recalibrate = btn_recalibrate_curr;
 
-	is_standby = (PINB & 0x20) != 0x00;
+	is_standby = (PINB & 0x20) == 0x00;
 }
 
 // Main loop used by Arduino
