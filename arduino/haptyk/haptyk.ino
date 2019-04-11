@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <SPI.h>
-#include <Wire.h>
 #include "Adafruit_BLE.h"
 #include "Adafruit_BluefruitLE_SPI.h"
 #include "Adafruit_BluefruitLE_UART.h"
-#include "Adafruit_MPR121.h"
+#include "custom_MPR121.c"
+#include "MPR121_Addrs.h"
 
 #include "config.h"
 #include "structs.h"
@@ -18,8 +18,6 @@
 // CS = 8, IRQ = 7, RST = 4
 Adafruit_BluefruitLE_SPI bt(HW_SPI_CS, HW_SPI_IRQ, HW_SPI_RST);
 
-Adafruit_MPR121 capacs = Adafruit_MPR121();
-
 #define DEBUG 1
 
 #ifdef DEBUG
@@ -30,7 +28,7 @@ void MPR121_reg_dump() {
 		Serial.print("$");
 		Serial.print(i, HEX);
 		Serial.print(": 0x");
-		Serial.println(capacs.readRegister8(i), HEX);
+		Serial.println(readRegister8(i), HEX);
 	}
     Serial.println("END MPR121 REGISTER DUMP");
 }
@@ -75,7 +73,7 @@ struct button_data_s get_button_data() {
 	static struct button_data_s instance;
 
 	if (cs_connected != 0) {
-		uint16_t currtouched = capacs.touched();
+		uint16_t currtouched = touched_status();
 		instance.b0 = currtouched & _BV(0);
 		instance.b1 = (currtouched & _BV(1)) >> 1;
 		instance.b2 = (currtouched & _BV(2)) >> 2;
@@ -119,7 +117,7 @@ void setup() {
 	setup_gatt_service(&bt);
 
 	// Using the MPR121 for button sensors?
-	if (capacs.begin(0x5A)) {
+	if (init_MPR121()) {
 		cs_connected = 1;
 	} else { // Nope? Use random data
 		cs_connected = 0;
@@ -150,7 +148,7 @@ void ctl_loop() {
 	u8 btn_recalibrate_curr = PINB & 0x40;
 	if (btn_recalibrate != 0x00 && btn_recalibrate_curr == 0x00) {
 		Serial.println("Recalibate");
-		capacs.begin(0x5A);
+		init_MPR121();
 	}
 	btn_recalibrate = btn_recalibrate_curr;
 
