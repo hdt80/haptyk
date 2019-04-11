@@ -16,7 +16,6 @@
 
 // Hardware SPI
 // CS = 8, IRQ = 7, RST = 4
-
 Adafruit_BluefruitLE_SPI bt(HW_SPI_CS, HW_SPI_IRQ, HW_SPI_RST);
 
 Adafruit_MPR121 capacs = Adafruit_MPR121();
@@ -60,34 +59,6 @@ u8 gatt_index;
 // Are we currently in standby mode?
 u8 is_standby;
 
-// Unrecoverable error has occured and Haptyk cannot continue functioning
-//
-// err - Error that occured. Will be printed to the serial interface
-//
-void error(const char* err) {
-	Serial.println(err);
-	while(1);
-}
-
-// Debug function to print the data of a button sensor struct
-//
-// data - Pointer to the data to print
-//
-void print_button_data(const struct button_data_s* data) {
-	Serial.print(data->b0, HEX);
-	Serial.print(data->b1, HEX);
-	Serial.print(data->b2, HEX);
-	Serial.print(data->b3, HEX);
-	Serial.print(data->b4, HEX);
-	Serial.print(data->b5, HEX);
-	Serial.print(data->b6, HEX);
-	Serial.print(data->b7, HEX);
-	Serial.print(data->b8, HEX);
-	Serial.print(data->b9, HEX);
-	Serial.print(data->b10, HEX);
-	Serial.println(data->b11, HEX);
-}
-
 // Setup pins for using the control buttons
 //
 void setup_control_buttons() {
@@ -104,14 +75,6 @@ struct button_data_s get_button_data() {
 	static struct button_data_s instance;
 
 	if (cs_connected != 0) {
-		//check for OCVF fault condition
-		u8 asdf = capacs.readRegister8(MPR121_TOUCHSTATUS_H);
-		if (0 != (0x80 & asdf)) {
-			Serial.println("OVCF DETECTED! RESETTING...");
-			capacs.begin(0x5A); //and reset if occured
-			Serial.println("Resetting complete.");
-		}
-
 		uint16_t currtouched = capacs.touched();
 		instance.b0 = currtouched & _BV(0);
 		instance.b1 = (currtouched & _BV(1)) >> 1;
@@ -143,27 +106,6 @@ struct button_data_s get_button_data() {
 	return instance;
 }
 
-// Send a Bluetooth packet using SDEP to the Bluetooth chip
-//
-// data - Bluetooth packet to send to the Bluetooth chip
-//
-void send_packet(struct packet_data_s* data) {
-	if (data->length == 0) {
-		return;
-	}
-
-	u8 buffer[16];
-	buffer[0] = data->device_id;
-	buffer[1] = data->packet_id;
-	buffer[2] = data->length;
-	for (int i = 0; i < data->length; ++i) {
-		buffer[3 + i] = data->data[i];
-	}
-
-	// Write the packet in a single command
-	bt.write(buffer, 3 + data->length);
-}
-
 // Function Arduino calls when the program starts running
 //
 void setup() {
@@ -173,21 +115,8 @@ void setup() {
 	}
 	Serial.println("Haptyk");
 
-	// Connet to the Bluetooth chip, performing startup commands
-	if (!bt.begin(BT_VERBOSE)) {
-		error("Failed to begin BT module");
-	}
-	Serial.println("Began BT module");
-
-	bt.echo(false);
-	bt.info();
-
-	bt.setMode(BLUEFRUIT_MODE_DATA);
-
+	bt_setup(&bt);
 	setup_gatt_service(&bt);
-
-	// Device ID doesn't change, just set it now
-	packet.device_id = HW_ID;
 
 	// Using the MPR121 for button sensors?
 	if (capacs.begin(0x5A)) {
@@ -202,75 +131,6 @@ void setup() {
 	setup_control_buttons();
 
 	pinMode(LED_BUILTIN, OUTPUT);
-}
-
-#define BUTTON_IS_NOW_PRESSED(x) \
-	button_data_prev.x == 0 && button_data_curr.x == 1
-
-#define BUTTON_NOW_NOT_PRESSED(x) \
-	button_data_prev.x == 1 && button_data_curr.x == 0
-
-// Bluetooth loop
-void bt_loop() {
-	// Clear any pending data to be read
-	while (bt.available()) {
-		bt.read();
-	}
-
-	// Reset previous packet sent
-	packet.length = 0;
-
-	// Should an update be performed on the GATT stuff?
-	u8 gatt_update_needed = 0x00;
-
-	// Buttons that were released, now pressed
-	if (BUTTON_IS_NOW_PRESSED(b0)) { packet.data[packet.length++] = 0x01; }
-	if (BUTTON_IS_NOW_PRESSED(b1)) { packet.data[packet.length++] = 0x02; }
-	if (BUTTON_IS_NOW_PRESSED(b2)) { packet.data[packet.length++] = 0x03; }
-	if (BUTTON_IS_NOW_PRESSED(b3)) { packet.data[packet.length++] = 0x11; }
-	if (BUTTON_IS_NOW_PRESSED(b4)) { packet.data[packet.length++] = 0x12; }
-	if (BUTTON_IS_NOW_PRESSED(b5)) { packet.data[packet.length++] = 0x13; }
-	if (BUTTON_IS_NOW_PRESSED(b6)) { packet.data[packet.length++] = 0x21; }
-	if (BUTTON_IS_NOW_PRESSED(b7)) { packet.data[packet.length++] = 0x22; }
-	if (BUTTON_IS_NOW_PRESSED(b8)) { packet.data[packet.length++] = 0x23; }
-	if (BUTTON_IS_NOW_PRESSED(b9)) { packet.data[packet.length++] = 0x31; }
-	if (BUTTON_IS_NOW_PRESSED(b10)) { packet.data[packet.length++] = 0x32; }
-	if (BUTTON_IS_NOW_PRESSED(b11)) { packet.data[packet.length++] = 0x33; }
-
-	// Sending any packet pressed data?
-	if (packet.length > 0) {
-		gatt_update_needed = 0x01; // Will need to update
-		packet.packet_id = PACKET_ID_PRESSED;
-		send_packet(&packet);
-		packet.length = 0;
-	}
-
-	// Buttons that were pressed, now released
-	if (BUTTON_NOW_NOT_PRESSED(b0)) { packet.data[packet.length++] = 0x01; }
-	if (BUTTON_NOW_NOT_PRESSED(b1)) { packet.data[packet.length++] = 0x02; }
-	if (BUTTON_NOW_NOT_PRESSED(b2)) { packet.data[packet.length++] = 0x03; }
-	if (BUTTON_NOW_NOT_PRESSED(b3)) { packet.data[packet.length++] = 0x11; }
-	if (BUTTON_NOW_NOT_PRESSED(b4)) { packet.data[packet.length++] = 0x12; }
-	if (BUTTON_NOW_NOT_PRESSED(b5)) { packet.data[packet.length++] = 0x13; }
-	if (BUTTON_NOW_NOT_PRESSED(b6)) { packet.data[packet.length++] = 0x21; }
-	if (BUTTON_NOW_NOT_PRESSED(b7)) { packet.data[packet.length++] = 0x22; }
-	if (BUTTON_NOW_NOT_PRESSED(b8)) { packet.data[packet.length++] = 0x23; }
-	if (BUTTON_NOW_NOT_PRESSED(b9)) { packet.data[packet.length++] = 0x31; }
-	if (BUTTON_NOW_NOT_PRESSED(b10)) { packet.data[packet.length++] = 0x32; }
-	if (BUTTON_NOW_NOT_PRESSED(b11)) { packet.data[packet.length++] = 0x33; }
-
-	// Send any packet released data
-	if (packet.length > 0) {
-		gatt_update_needed = 0x01;
-		packet.packet_id = PACKET_ID_RELEASED;
-		send_packet(&packet);
-		packet.length = 0;
-	}
-
-	// Any changes? Lets update the GATT characteristic with new data
-	if (gatt_update_needed != 0x00) {
-		update_gatt(&bt, &button_data_curr);
-	}
 }
 
 // Control loop for control buttons
@@ -297,10 +157,6 @@ void ctl_loop() {
 	is_standby = (PINB & 0x20) == 0x00;
 }
 
-// Main loop used by Arduino
-int dumped = 0;
-
-u8 counter = 0;
 void loop() {
 	ctl_loop(); // Perform control loop for any control button changes
 
@@ -314,28 +170,9 @@ void loop() {
 
 	button_data_curr = get_button_data();
 
-	// Is Haptyk connected to a device? If not, wait until paired
-	if (bt_connected == 0x00) {
-		Serial.print("Connecting... ");
-
-		bt.verbose(false); // Disable output when connecting, lots of noise
-		while (!bt.isConnected()) {
-			_delay_ms(50);
-		}
-		Serial.println("done");
-
-		bt_connected = 0x01;
-		bt.verbose(BT_VERBOSE); // Renable verbose if needed
-	} else { // If so, do the Bluetooth loop
-		bt_loop();
-	}
+	bt_loop(&bt);
 
 	button_data_prev = button_data_curr;
 
 	_delay_ms(10);
-  #ifdef DEBUG
-  if (dumped == 1)
-    MPR121_reg_dump();
-  ++dumped; 
-  #endif
 }

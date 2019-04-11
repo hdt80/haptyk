@@ -10,3 +10,12 @@
 
 #define PACKET_ID_PRESSED	0x01
 #define PACKET_ID_RELEASED	0x02
+
+// Unrecoverable error has occured and Haptyk cannot continue functioning
+//
+// err - Error that occured. Will be printed to the serial interface
+//
+void error(const char* err) {
+	Serial.println(err);
+	while(1);
+}

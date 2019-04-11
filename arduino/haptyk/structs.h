@@ -1,14 +1,5 @@
 #pragma once
 
-// Contains data that will be sent to the Bluetooth chip
-//
-struct packet_data_s {
-	char device_id;
-	char packet_id;
-	char length; // How many bytes to send
-	char data[12]; // Max 12 needed for now
-} packet;
-
 // Contains the status of each button sensor
 //
 struct button_data_s {
