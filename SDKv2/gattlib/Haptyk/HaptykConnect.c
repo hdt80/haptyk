@@ -19,29 +19,39 @@
 #include "gattlib.h"
 #include "HaptykConnect.h"
 
-typedef enum { READ, WRITE } operation_t;
-operation_t operation = READ;
-
-static uuid_t g_uuid;
+uuid_t bt_read_char;
+gatt_connection_t* bt_connection;
 
 void haptyk_init(const char* connection) {
-	gatt_connetion_t* bt_conn;
-	uuid_t g_uuid;
-
 	if (gattlib_string_to_uuid(HAPTYK_READ_UUID,
-			strlen(HAPTYK_READ_UUID) + 1, &g_uuid) < 0) {
+			strlen(HAPTYK_READ_UUID) + 1, &bt_read_char) < 0) {
 
 		fprintf(stderr, "Failed to read UUID\n");
 	}
 
-	bt_conn = gattlib_connection(NULL, connection, BDADDR_LE_PUBLIC, BT_SEC_LOW, 0, 0);
-	if (bt_conn == NULL) {
+	bt_connection = gattlib_connect(
+		NULL, connection, BDADDR_LE_PUBLIC, BT_SEC_LOW, 0, 0);
+	
+	if (bt_connection == NULL) {
 		fprintf(stderr, "Failed to connect to Bluetooth device %s\n", connection);
 	}
 }
 
 struct haptyk_buttons_t haptyk_get_data() {
 	int handle;
+
+	uint8_t buffer[12];
+	uint8_t length = sizeof(buffer);
+
+	handle = gattlib_read_char_by_uuid(bt_connection, &bt_read_char, buffer, &length);
+	if (handle == -1) {
+		fprintf(stderr, "Failed to read gatt char");
+	} else {
+		for (int i = 0; i < length; ++i) {
+			printf("%02x ", buffer[i]);
+		}
+		printf("\n");
+	}
 
 	struct haptyk_buttons_t data;
 

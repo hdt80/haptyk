@@ -3,6 +3,9 @@
 
 #define HAPTYK_READ_UUID "00000004-0000-1000-8000-00805f9b34fb"
 
+extern uuid_t bt_read_char;
+extern gatt_connection_t* bt_connection;
+
 struct haptyk_buttons_t {
         uint8_t b0;
         uint8_t b1;
