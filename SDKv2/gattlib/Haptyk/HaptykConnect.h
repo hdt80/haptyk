@@ -23,6 +23,6 @@ struct haptyk_buttons_t {
 
 void haptyk_init(const char* address);
 void haptyk_disconnect(const char* address);
-struct haptyk_buttons_t haptyk_get_data();
+void haptyk_get_data(struct haptyk_buttons_t * data);
 
 #endif

@@ -30,7 +30,7 @@ void haptyk_init(const char* connection) {
 	}
 
 	bt_connection = gattlib_connect(
-		NULL, "E7:2F:7B:39:84:52", BDADDR_LE_RANDOM, BT_SEC_LOW, 0, 0);
+		NULL, connection, BDADDR_LE_RANDOM, BT_SEC_LOW, 0, 0);
 	
 	if (bt_connection == NULL) {
 		fprintf(stderr, "Failed to connect to Bluetooth device %s\n", connection);
@@ -46,7 +46,7 @@ void haptyk_disconnect(const char* connection) {
 
 }
 
-struct haptyk_buttons_t haptyk_get_data() {
+void haptyk_get_data(struct haptyk_buttons_t * data) {
 	int handle;
 
 	uint8_t buffer[12];
@@ -56,14 +56,17 @@ struct haptyk_buttons_t haptyk_get_data() {
 	if (handle == -1) {
 		fprintf(stderr, "Failed to read gatt char");
 	} else {
-		for (int i = 0; i < length; ++i) {
-			printf("%02i ", buffer[i]);
-		}
-		printf("\n");
+		data->b0 = buffer[0];
+		data->b1 = buffer[1];
+		data->b2 = buffer[2];
+		data->b3 = buffer[3];
+		data->b4 = buffer[4];
+		data->b5 = buffer[5];
+		data->b6 = buffer[6];
+		data->b7 = buffer[7];
+		data->b8 = buffer[8];
+		data->b9 = buffer[9];
+		data->b10 = buffer[10];
+		data->b11 = buffer[11];
 	}
-
-	struct haptyk_buttons_t data;
-
-	return data;
-
 }
