@@ -16,4 +16,7 @@ test: link
 	cp lib/libgattlib.so build/
 
 run: test
-	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib/ ./build/test.out E7:2F:7B:39:84:52
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib/ ./build/test.out
+
+debug: test
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib/ gdb ./build/test.out

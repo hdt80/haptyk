@@ -19,11 +19,12 @@
 #include "HaptykConnect.h"
 
 int main(int argc, char * argv[]) {
-	haptyk_init(argv[1]);
-
-	while (1) {
+	haptyk_init("E7:2F:7B:39:84:52");
+	int index;
+	for(index = 0; index < 10; index++) {
 		haptyk_get_data();
 	}
 	
+	haptyk_disconnect("E7:2F:7B:39:84:52");
 	return 0;
 }

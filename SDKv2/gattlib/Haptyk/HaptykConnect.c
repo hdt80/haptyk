@@ -24,31 +24,40 @@ gatt_connection_t* bt_connection;
 
 void haptyk_init(const char* connection) {
 	if (gattlib_string_to_uuid(HAPTYK_READ_UUID,
-			strlen(HAPTYK_READ_UUID) + 1, &bt_read_char) < 0) {
+			(strlen(HAPTYK_READ_UUID) + 1), &bt_read_char) < 0) {
 
 		fprintf(stderr, "Failed to read UUID\n");
 	}
 
 	bt_connection = gattlib_connect(
-		NULL, connection, BDADDR_LE_PUBLIC, BT_SEC_LOW, 0, 0);
+		NULL, "E7:2F:7B:39:84:52", BDADDR_LE_RANDOM, BT_SEC_LOW, 0, 0);
 	
 	if (bt_connection == NULL) {
 		fprintf(stderr, "Failed to connect to Bluetooth device %s\n", connection);
 	}
 }
 
+void haptyk_disconnect(const char* connection) {
+
+	gattlib_disconnect(bt_connection);
+	if (bt_connection == NULL) {
+		fprintf(stderr, "Failed to disconnect to Bluetooth device \n");
+	}
+
+}
+
 struct haptyk_buttons_t haptyk_get_data() {
 	int handle;
 
 	uint8_t buffer[12];
-	uint8_t length = sizeof(buffer);
+	size_t length = sizeof(buffer);
 
 	handle = gattlib_read_char_by_uuid(bt_connection, &bt_read_char, buffer, &length);
 	if (handle == -1) {
 		fprintf(stderr, "Failed to read gatt char");
 	} else {
 		for (int i = 0; i < length; ++i) {
-			printf("%02x ", buffer[i]);
+			printf("%02i ", buffer[i]);
 		}
 		printf("\n");
 	}
