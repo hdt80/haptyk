@@ -8,7 +8,7 @@
 
 uint8_t init_MPR121(void) {
     int8_t success = 1;
-    
+
     uint8_t USL = 200;
     uint8_t startAll = 0x8F;
     uint8_t ACE_ARE = 0x03;
@@ -19,7 +19,13 @@ uint8_t init_MPR121(void) {
     writeByte(MPR121_ADDR, SOFT_RESET, 0x63);
 
     writeByte(MPR121_ADDR, ELE_CONFIGURATION, 0x0);
-    
+
+	uint8_t c = readByte(MPR121_ADDR, GLOBAL_FILTER_CDT_CONFIGURATION);
+
+	if (c != 0x24) {
+		return 0;
+	}
+
     //set touch and release threshholds
     for (uint8_t i = 0; i < 12; i++) 
     {
@@ -31,7 +37,6 @@ uint8_t init_MPR121(void) {
     //writeByte(MPR121_ADDR, AUTO_CONFIG_REG_0, ACE_ARE);
     //writeByte(MPR121_ADDR, LOWSIDE_LIMIT, LSL);
     //writeByte(MPR121_ADDR, TARGET_LEVEL, TL);
-
 
     writeByte(MPR121_ADDR, NHDR, 0x01);
     writeByte(MPR121_ADDR, MHDR, 0x01);

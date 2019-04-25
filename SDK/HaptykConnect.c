@@ -1,170 +1,77 @@
-// Kameron Ramey
-// 12 Jan 2019
+/*
+ *
+ *	HaptykConnect.c v2
+ *	Team Haptyk
+ *	4/11/2019
+ *
+ *	This source is used to interface with a Haptyk
+ *	device. Connections will be made, and UUIDs
+ *	of services will be read from and updated on	
+ *	a global button data array for the developer
+ *	to use.
+ *
+ */
 
-#include <unistd.h>
-#include <errno.h>
+#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 
+#include "gattlib.h"
 #include "HaptykConnect.h"
 
-#include "bluez/lib/uuid.h"
-#include "bluez/btio/btio.h"
-#include "att.h"
-#include "gattrib.h"
-#include "gatt.h"
-#include "gatttool.h"
+uuid_t bt_read_char;
+gatt_connection_t* bt_connection;
 
-static char * source_dev = NULL; 		// Specify client bluetooth adapter
-static char * target_dev = "E7:2F:7B:39:84:52"; // Haptyk BLE addr
-static char * addr_type = "random";       	// Haptyk BLE addr type
-static char * security_level = "low";		// Default Security
+void haptyk_init(const char* connection) {
+	if (gattlib_string_to_uuid(HAPTYK_READ_UUID,
+			(strlen(HAPTYK_READ_UUID) + 1), &bt_read_char) < 0) {
 
-static gboolean opt_char_read = FALSE;		// Service options	
-static gboolean opt_char_write = FALSE;
-static gboolean opt_listen = FALSE;
-static char * opt_value = NULL;
-static int opt_handle = -1;
-
-static GMainLoop * event_loop;
-static gboolean error_flag = FALSE;		// error flag
-static GSourceFunc current_opt;			// used for handling passed operations
-
-
-
-static GOptionEntry gatt_options[] = {
-	{"char-read", 0, 0, G_OPTION_ARG_NONE, &opt_char_read, "Read a characteristic from peripheral", NULL},
-	{"char-write", 0, 0, G_OPTION_ARG_NONE, &opt_char_write, "write to characteristic at peripheral", NULL},
-	{"listen", 0, 0, G_OPTION_ARG_NONE, &opt_listen, "listen for notifications and indications", NULL},
-	{ NULL }
-};
-
-static GOptionEntry options[] = {
-
-	{"adapter", 'i', 0, G_OPTION_ARG_STRING, &source_dev, "set local bluetooth adapter", "hciX"},
-	{"peripheral", 'b', 0, G_OPTION_ARG_STRING, &target_dev, "set peripheral address", "MAC"},
-	{"addr-type", 't', 0, G_OPTION_ARG_STRING, &addr_type, "set address type", "[random | public]"},
-	{"security", 'l', 0, G_OPTION_ARG_STRING, &security_level, "set security level", "[low | medium | high]"},
-	{ NULL }
-};
-
-static GOptionEntry read_write_options[] = {
-
-	{"handle", 'a', 0, G_OPTION_ARG_INT, &opt_handle, "specify the handle to read/write", "0x0001"},
-	{"value", 'n', 0, G_OPTION_ARG_STRING, &opt_value, "Specify value to be written to characteristic", "0x0001"},
-	{ NULL }
-};
-
-void connect_cb(GIOChannel *io, GError * error, gpointer data){		/* Callback for determining connection */
-	GAttrib *attribute;						
-	
-	if (error){
-		g_printerr("%s\n", error->message);	// could not connect to device
-		g_main_loop_quit(event_loop);		// quit the main loop
-	}
-	attribute = g_attrib_new(io);			// create IO attribute		
-
-	if(opt_listen){					// if we are listening for characteristic data
-		g_idle_add(listen_start, attribute);	// add idle process to monitor changes
+		fprintf(stderr, "Failed to read UUID\n");
 	}
 
-	operation(attribute);				// run current operation from the attribute
-}
-
-static gboolean listen_start(gpointer data){	/* Register GATT attributes for listening in the event handler */
-	GAttrib * attribute;
+	bt_connection = gattlib_connect(
+		NULL, connection, BDADDR_LE_RANDOM, BT_SEC_LOW, 0, 0);
 	
-	// Notifications
-	g_attrib_register(attribute, ATT_OP_HANDLE_NOTIFY, GATTRIB_ALL_HANDLES, event_handler, attribute, NULL);
-
-	// Indications
-	g_attrib_register(attribute, ATT_OP_HANDLE_IND, GATTRIB_ALL_HANDLES, event_handler, attribute, NULL);
-
-	return FALSE;
-}
-
-static gboolean read_characteristic(gpointer data){				/* Read from a passed characteristic */	
-	GAttrib * attribute = data;					
-	
-	gatt_read_char(attribute, 0x0001, read_characteristic_cb, attribute); // pass the read char callback func
-	
-	return FALSE;
-}
-
-void read_characteristic_cb(guint8 status, const guint8* pdu, guint16 plen,	/* Callback for returning read characteristic */
-		gpointer user_data) {
-
-	uint8_t value[plen];							
-	ssize_t vlen;
-	int i;
-
-	if (status != 0) {	// the read failed print error												
-		g_printerr("Characteristic value/descriptor read failed: %s\n", att_ecode2str(status));
+	if (bt_connection == NULL) {
+		fprintf(stderr, "Failed to connect to Bluetooth device %s\n", connection);
 	}
-
-	vlen = dec_read_resp(pdu, plen, value, sizeof(value));		// get the length of the returned characteristic data
-	if (vlen < 0) {
-		g_printerr("Protocol error\n");				// if we got no data an error has occured	
-	}
-	g_print("Characteristic value/descriptor: ");
-	for (i = 0; i < vlen; i++)
-		g_print("%02x ", value[i]);				// loop through the data array printing characteristic display
-	g_print("\n");
-
-
 }
 
-int main(int argc, char * argv[]){      //(char * UUID, char * security){ 			/* This is the main connect loop for haptyk */
-	GOptionContext * context;				
-	GOptionGroup * gatt_group, *params_group, *char_rw_group; 
-	GIOChannel * channel;
-	GError * error;
-
-//	if(UUID != NULL){
-//		target_dev = strdup(UUID);
-//	}
-//	else if(security != NULL){
-//		security_level = strdup(security);
-//	}
-	
-	context = g_option_context_new(NULL);
-	g_option_context_add_main_entries(context, options, NULL);
-	
-	/* GATT Commands */
-
-	gatt_group = g_option_group_new("gatt", "GATT commands", "Show all GATT commands", NULL, NULL);
-	g_option_context_add_group(context, gatt_group);
-	g_option_group_add_entries(gatt_group, gatt_options);
-
-	/* Services and Characteristics Arguments */
-	
-		
-
-	/* Characteristics Read/Write Argument*/
-
-
-
-	operation = characteristics_read;				
-
-	channel = gatt_connect(source_dev, target_dev, addr_type, 
-			security_level, 0, 0, connect_cb, &error);
-
-	if(channel == NULL){
-		error_flag = TRUE;
-		g_printerr("%s\n", error->message);
-		g_clear_error(&gerr);
-		
+void haptyk_disconnect(const char* connection) {
+	gattlib_disconnect(bt_connection);
+	if (bt_connection == NULL) {
+		fprintf(stderr, "Failed to disconnect to Bluetooth device \n");
 	}
-
-	event_loop = g_main_loop_new(NULL, FALSE);	// Instantiate an event handler	
-
-	g_main_loop_run(event_loop);			// run the handler until it completes
-
-	g_main_loop_unref(event_loop);			// unreference the used resources
-
-	if(error_flag)					// check if an error occurred
-		exit(EXIT_FAILURE);
-	else
-		exit(EXIT_SUCCESS);
 }
 
+void haptyk_get_data(struct haptyk_buttons_t * data) {
+	int handle;
 
+	uint8_t buffer[12];
+	size_t length = sizeof(buffer);
+
+	handle = gattlib_read_char_by_uuid(bt_connection, &bt_read_char, buffer, &length);
+	if (handle == -1) {
+		fprintf(stderr, "Failed to read gatt char");
+	} else {
+		data->b0 = buffer[0];
+		data->b1 = buffer[1];
+		data->b2 = buffer[2];
+		data->b3 = buffer[3];
+		data->b4 = buffer[4];
+		data->b5 = buffer[5];
+		data->b6 = buffer[6];
+		data->b7 = buffer[7];
+		data->b8 = buffer[8];
+		data->b9 = buffer[9];
+		data->b10 = buffer[10];
+		data->b11 = buffer[11];
+	}
+}
+
+void haptyk_print(struct haptyk_buttons_t* data) {
+	printf("%x => %i-%i-%i-%i-%i-%i-%i-%i-%i-%i-%i-%i\n", (void*) data,
+			data->b0, data->b1, data->b2, data->b3, 
+			data->b4, data->b5, data->b6, data->b7,
+			data->b8, data->b9, data->b10, data->b11);
+}

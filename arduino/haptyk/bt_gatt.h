@@ -48,9 +48,15 @@ void update_gatt(Adafruit_BT* bt, struct button_data_s* data) {
 	values[14 + 31] = (data->b10 == 0) ? '0' : '1';
 	values[14 + 34] = (data->b11 == 0) ? '0' : '1';
 
+#if BT_VERBOSE == 0x01
 	bt->verbose(true);
+#endif
+
 	bt->atcommandIntReply(values, &cmdResult);
+
+#if BT_VERBOSE == 0x01
 	bt->verbose(false);
+#endif
 }
 
 // Setup the BT module
@@ -63,6 +69,7 @@ void bt_setup(Adafruit_BT* bt) {
 	bt->echo(false);
 	bt->info();
 
+	Serial.println("BT module started");
 }
 
 void bt_update(Adafruit_BT* bt) {
@@ -163,5 +170,5 @@ void setup_gatt_service(Adafruit_BT* bt) {
 	Serial.println(cmdResult);
 	bt->verbose(false);
 
-	Serial.println("done");
+	Serial.println("GATT module started");
 }

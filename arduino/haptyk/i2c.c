@@ -1,9 +1,10 @@
 /*
  * Originally by: Benjamin Frank
  * Edited by: Garrett Fechter
- */ 
+ */
 #include <util/twi.h>
 #include "i2c.h"
+
 /*
  * Initialization of the I2C bus
  */
@@ -30,14 +31,15 @@ void connect_i2c(uint8_t adr, uint8_t w) {
  * Sends the start condition
  */
 void start_i2c() {
-	uint8_t   twstatus;
+	uint8_t twstatus;
 	// send START condition
 	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
 	
 	// wait until transmission completed
-	while ( !(TWCR & (1<<TWINT)))	;
+	while (!(TWCR & (1<<TWINT)));
 	twstatus = TW_STATUS & 0xF8;
 	if ((twstatus != TW_START) && (twstatus != TW_REP_START)){
+
 	}
 }
 

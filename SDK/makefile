@@ -1,36 +1,26 @@
-# 
-#	Haptyk SDK Makefile
-#
-#
-CFLAGS = -g -Wall
+build: HaptykConnect.c
+	mkdir -p build/
+	gcc HaptykConnect.c -Wall -g -c -I lib -fPIC -o build/HaptykConnect.o
 
-PKG_CONFIGS = $(pkg-config --cflags  dbus-1)
-
-INCLUDE_DIRS = -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include \
-			   -I/usr/include/glib-2.0/glib -Ibluez/src -Ibluez/gdbus \
-			   -I/usr/include/dbus-1.0 -I/usr/lib/dbus-1.0/include \
-			   -I/usr/lib/x86_64-linux-gnu/glib-2.0/include \
-			   -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include
-
-LIBRARIES = -lbluetooth -lglib-2.0
-
-all: build
-
-SRCS = HaptykConnect.c gatt.c att.c gattrib.c utils.c gatt-service.c gatttool.c \
-	   uuid.c btio.c log.c
-
-OBJS = $(patsubst %.c, %.o, $(SRCS))
-
-build: $(SRCS)
-	gcc $(PKG_CONFIGS) $(CFLAGS) $(INCLUDE_DIRS) -lglib-2.0 -c $(SRCS)
-	ar rcs libhaptyk.a $(OBJS)
-
-test: build
-	gcc -c bt_test.c -o bt_test.o $(INCLUDE_DIRS)
-	gcc -o test_haptyk bt_test.o -L. -lhaptyk -lglib-2.0 -lbluetooth
-
-run: test
-	./test_haptyk
+link: build
+	#gcc build/HaptykConnect.o -g -c -L lib -lgattlib -fPIC -o build/libhaptyk.o
+	ar rcs libhaptyk.a build/HaptykConnect.o
+	cp libhaptyk.a ../demos/haptyk/
+	cp HaptykConnect.h ../demos/haptyk/haptyk.h
+	cp lib/gattlib.h ../demos/haptyk
+	cp lib/libgattlib.so ../demos/haptyk
 
 clean:
-	rm *.o test_haptyk
+	rm -r build/
+	rm libhaptyk.a
+
+test: link
+	gcc HaptykTest.c -Wall -g -c -o HaptykTest.o -I lib
+	gcc HaptykTest.o -L . -lhaptyk -L lib -lgattlib -o build/test.out
+	cp lib/libgattlib.so build/
+
+run: test
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib/ ./build/test.out
+
+debug: test
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib/ gdb ./build/test.out

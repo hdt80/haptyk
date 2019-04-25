@@ -63,6 +63,8 @@ void setup_control_buttons() {
 	// Setups an internal pull-up
 	DDRB |= (1 << DDB7) | (1 << DDB6) | (1 << DDB5);
 	PORTB |= (1 << PORTB7) | (1 << PORTB6) | (1 << PORTB5);
+
+	Serial.println("CTL started");
 }
 
 // Get the state of each sensor button
@@ -116,13 +118,15 @@ void setup() {
 	bt_setup(&bt);
 	setup_gatt_service(&bt);
 
+	Serial.println("Starting CS module");
 	// Using the MPR121 for button sensors?
-	if (init_MPR121()) {
-		cs_connected = 1;
-	} else { // Nope? Use random data
-		cs_connected = 0;
-		randomSeed(analogRead(0));
-	}
+#if USE_CAP_SENSORS == 0x01
+	init_MPR121();
+	cs_connected = 1;
+#else
+	cs_connected = 0;
+	randomSeed(analogRead(0));
+#endif
 	Serial.print("Using the MPR121? ");
 	Serial.println(cs_connected);
 
