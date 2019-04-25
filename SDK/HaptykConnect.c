@@ -26,7 +26,7 @@ static char * opt_value = NULL;
 static int opt_handle = -1;
 
 static GMainLoop * event_loop;
-static gboolean error = FALSE;			// error flag
+static gboolean error_flag = FALSE;		// error flag
 static GSourceFunc current_opt;			// used for handling passed operations
 
 
@@ -47,7 +47,7 @@ static GOptionEntry options[] = {
 	{ NULL }
 };
 
-static GOptionEntry read_write_options = {
+static GOptionEntry read_write_options[] = {
 
 	{"handle", 'a', 0, G_OPTION_ARG_INT, &opt_handle, "specify the handle to read/write", "0x0001"},
 	{"value", 'n', 0, G_OPTION_ARG_STRING, &opt_value, "Specify value to be written to characteristic", "0x0001"},
@@ -58,10 +58,36 @@ void connect_cb(GIOChannel *io, GError * error, gpointer data){		/* Callback for
 	GAttrib *attribute;						
 	
 	if (error){
-		g_printerr("%s\n", error->message);
-		g_main_loop_quit(event_loop);
+		g_printerr("%s\n", error->message);	// could not connect to device
+		g_main_loop_quit(event_loop);		// quit the main loop
 	}
-	attribute = g_attrib_new(io);
+	attribute = g_attrib_new(io);			// create IO attribute		
+
+	if(opt_listen){					// if we are listening for characteristic data
+		g_idle_add(listen_start, attribute);	// add idle process to monitor changes
+	}
+
+	operation(attribute);				// run current operation from the attribute
+}
+
+static gboolean listen_start(gpointer data){	/* Register GATT attributes for listening in the event handler */
+	GAttrib * attribute;
+	
+	// Notifications
+	g_attrib_register(attribute, ATT_OP_HANDLE_NOTIFY, GATTRIB_ALL_HANDLES, event_handler, attribute, NULL);
+
+	// Indications
+	g_attrib_register(attribute, ATT_OP_HANDLE_IND, GATTRIB_ALL_HANDLES, event_handler, attribute, NULL);
+
+	return FALSE;
+}
+
+static gboolean read_characteristic(gpointer data){				/* Read from a passed characteristic */	
+	GAttrib * attribute = data;					
+	
+	gatt_read_char(attribute, 0x0001, read_characteristic_cb, attribute); // pass the read char callback func
+	
+	return FALSE;
 }
 
 void read_characteristic_cb(guint8 status, const guint8* pdu, guint16 plen,	/* Callback for returning read characteristic */
@@ -72,8 +98,7 @@ void read_characteristic_cb(guint8 status, const guint8* pdu, guint16 plen,	/* C
 	int i;
 
 	if (status != 0) {	// the read failed print error												
-		g_printerr("Characteristic value/descriptor read failed: %s\n",
-							att_ecode2str(status));
+		g_printerr("Characteristic value/descriptor read failed: %s\n", att_ecode2str(status));
 	}
 
 	vlen = dec_read_resp(pdu, plen, value, sizeof(value));		// get the length of the returned characteristic data
@@ -84,6 +109,8 @@ void read_characteristic_cb(guint8 status, const guint8* pdu, guint16 plen,	/* C
 	for (i = 0; i < vlen; i++)
 		g_print("%02x ", value[i]);				// loop through the data array printing characteristic display
 	g_print("\n");
+
+
 }
 
 int main(int argc, char * argv[]){      //(char * UUID, char * security){ 			/* This is the main connect loop for haptyk */
@@ -92,12 +119,12 @@ int main(int argc, char * argv[]){      //(char * UUID, char * security){ 			/* 
 	GIOChannel * channel;
 	GError * error;
 
-	if(UUID != NULL){
-		target_dev = strdup(UUID);
-	}
-	else if(security != NULL){
-		security_level = strdup(security);
-	}
+//	if(UUID != NULL){
+//		target_dev = strdup(UUID);
+//	}
+//	else if(security != NULL){
+//		security_level = strdup(security);
+//	}
 	
 	context = g_option_context_new(NULL);
 	g_option_context_add_main_entries(context, options, NULL);
@@ -112,26 +139,32 @@ int main(int argc, char * argv[]){      //(char * UUID, char * security){ 			/* 
 	
 		
 
-	/* Characteristics Read/Write Arguments */
+	/* Characteristics Read/Write Argument*/
 
 
 
+	operation = characteristics_read;				
 
 	channel = gatt_connect(source_dev, target_dev, addr_type, 
 			security_level, 0, 0, connect_cb, &error);
 
+	if(channel == NULL){
+		error_flag = TRUE;
+		g_printerr("%s\n", error->message);
+		g_clear_error(&gerr);
+		
+	}
 
+	event_loop = g_main_loop_new(NULL, FALSE);	// Instantiate an event handler	
 
-	if(error)
+	g_main_loop_run(event_loop);			// run the handler until it completes
+
+	g_main_loop_unref(event_loop);			// unreference the used resources
+
+	if(error_flag)					// check if an error occurred
 		exit(EXIT_FAILURE);
 	else
 		exit(EXIT_SUCCESS);
 }
 
-gboolean read_characteristic(gpointer data){				/* Read from a passed characteristic */	
-	GAttrib * attribute = data;					
-	
-	gatt_read_char(attribute, 0x0001, read_characteristic_cb, attribute); // pass the read char callback func
-	
-	return FALSE;
-}
+

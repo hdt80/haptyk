@@ -1,0 +1,1 @@
+/usr/bin/cc  -Wall  -rdynamic CMakeFiles/nordic_uart.dir/nordic_uart.c.o  -o nordic_uart  -L/home/special-k/Documents/school/JP/SDKv2/gattlib/dbus -Wl,-rpath,/home/special-k/Documents/school/JP/SDKv2/gattlib/dbus ../../dbus/libgattlib.so -lglib-2.0 -lgattlib -lglib-2.0 -lpcre -lpthread -lgio-2.0 -lgobject-2.0 -lglib-2.0 

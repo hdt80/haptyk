@@ -1,0 +1,1 @@
+gatttool -t random -b E7:2F:7B:39:84:52 --char-write-req --handle=0x0023 --value=0100 --listen
