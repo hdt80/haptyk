@@ -11,6 +11,9 @@ build: soundboard.c
 run: build
 	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../haptyk/ ./soundboard.out CD:FB:24:E5:2F:14
 
+valgrind: build
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../haptyk/ valgrind ./soundboard.out CD:FB:24:E5:2F:14
+
 clean:
 	rm -r build/
 	rm ./soundboard.out
