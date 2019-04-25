@@ -22,10 +22,16 @@
   http://www.arduino.cc/en/Tutorial/Blink
 */
 
+#include "../SDK/lib/gattlib.h"
+#include "../SDK/HaptykConnect.h"
+
 #define FORWARD 2
 #define BACKWARD 3
 #define RIGHT 8
 #define LEFT 9
+
+struct haptyk_buttons_t b1;
+const char* haptyk_addr = "E7:2F:7B:39:84:52";
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -40,6 +46,7 @@ void setup() {
   digitalWrite(LEFT, HIGH);
   digitalWrite(BACKWARD, HIGH);
   Serial.begin(9600);
+  haptyk_init(haptyk_addr);
 }
 
 int incomingByte = 0;
@@ -64,24 +71,34 @@ void loop() {
     bool curr_backward = digitalRead(BACKWARD);
     bool curr_left = digitalRead(LEFT);
     bool curr_right = digitalRead(RIGHT);
-    switch (incomingByte) 
+
+    haptyk_getdata(&b1);
+    if (b1.b3 != 0 && curr_backward == 1) 
     {
-      case 'F':
-        if (curr_backward == 1)
-          digitalWrite(FORWARD, !curr_forward);
-        break;
-      case 'B':
-        if (curr_forward == 1)
-          digitalWrite(BACKWARD, !curr_backward);
-        break;
-      case 'R':
-        if (curr_left == 1)
-          digitalWrite(RIGHT, !curr_right);
-        break;
-      case 'L':
-        if (curr_right == 1)
-          digitalWrite(LEFT, !curr_left);
-        break;
+      digitalWrite(FORWARD, LOW);
     }
-  }
+    else 
+      digitalWrite(FORWARD, HIGH);
+    
+    if (b1.b5 != 0 && curr_forward == 1) 
+    {
+      digitalWrite(BACKWARD, LOW);
+    }
+    else 
+      digitalWrite(BACKWARD, HIGH);
+
+    if (b1.b0 != 0 && curr_left == 1) 
+    {
+      digitalWrite(RIGHT, LOW);
+    }
+    else 
+      digitalWrite(RIGHT, HIGH);
+
+    if (b1.b7 != 0 && curr_right == 1) 
+    {
+      digitalWrite(LEFT, LOW);
+    }
+    else 
+      digitalWrite(LEFT, HIGH);
+        
 }
