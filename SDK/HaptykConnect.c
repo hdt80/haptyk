@@ -19,9 +19,18 @@
 #include "gattlib.h"
 #include "HaptykConnect.h"
 
-uuid_t bt_read_char;
-gatt_connection_t* bt_connection;
+uuid_t bt_read_char;			// handle for the current characteristic to read from
+gatt_connection_t* bt_connection;	// handle for a Bluetooth connection
 
+
+/*********************************************************************************************
+ *
+ *	Funtion: Haptyk_init
+ *	Return: void
+ *	Description: Use this function to connnect to any haptyk device. This is accomplished
+ *		by passing in the MAC Address of the device you want to connect to. 
+ *
+ ********************************************************************************************/
 void haptyk_init(const char* connection) {
 	if (gattlib_string_to_uuid(HAPTYK_READ_UUID,
 			(strlen(HAPTYK_READ_UUID) + 1), &bt_read_char) < 0) {
@@ -37,6 +46,14 @@ void haptyk_init(const char* connection) {
 	}
 }
 
+/*********************************************************************************************
+ *
+ *	Funtion: Haptyk_disconnect
+ *	Return: void
+ *	Description: Use this function to disconnnect from any haptyk device. This is accomplished
+ *		by passing the MAC Address of the device ALREADY connected.
+ *
+ ********************************************************************************************/
 void haptyk_disconnect(const char* connection) {
 	gattlib_disconnect(bt_connection);
 	if (bt_connection == NULL) {
@@ -44,8 +61,18 @@ void haptyk_disconnect(const char* connection) {
 	}
 }
 
+/*********************************************************************************************
+ *
+ *	Funtion: Haptyk_get_data
+ *	Return: void
+ *	Description: Use this function to read the current data from any characteristic
+ *		defined by Haptyk. This incldues the current button data and the battery level
+ *		of the paried Haptyk Device. 
+ *
+ *
+ ********************************************************************************************/
 void haptyk_get_data(struct haptyk_buttons_t * data) {
-	int handle;
+	int handle;				
 
 	uint8_t buffer[12];
 	size_t length = sizeof(buffer);
@@ -54,7 +81,7 @@ void haptyk_get_data(struct haptyk_buttons_t * data) {
 	if (handle == -1) {
 		fprintf(stderr, "Failed to read gatt char");
 	} else {
-		data->b0 = buffer[0];
+		data->b0 = buffer[0];	
 		data->b1 = buffer[1];
 		data->b2 = buffer[2];
 		data->b3 = buffer[3];
@@ -69,6 +96,15 @@ void haptyk_get_data(struct haptyk_buttons_t * data) {
 	}
 }
 
+/*********************************************************************************************
+ *
+ *	Funtion: Haptyk_print
+ *	Return: void
+ *	Description: Use this function to print out the button data of the currently
+ *		connected Haptyk device. 
+ *
+ *
+ ********************************************************************************************/
 void haptyk_print(struct haptyk_buttons_t* data) {
 	printf("%x => %i-%i-%i-%i-%i-%i-%i-%i-%i-%i-%i-%i\n", (void*) data,
 			data->b0, data->b1, data->b2, data->b3, 
