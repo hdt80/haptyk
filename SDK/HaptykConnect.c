@@ -8,7 +8,9 @@
  *	device. Connections will be made, and UUIDs
  *	of services will be read from and updated on	
  *	a global button data array for the developer
- *	to use.
+ *	to use; you can redistribute it and/or modify
+ *  	it under the terms of the GNU General Public 
+ *  	License as published by the Free Software Foundation
  *
  */
 
@@ -68,7 +70,6 @@ void haptyk_disconnect(const char* connection) {
  *	Description: Use this function to read the current data from any characteristic
  *		defined by Haptyk. This incldues the current button data and the battery level
  *		of the paried Haptyk Device. 
- *
  *
  ********************************************************************************************/
 void haptyk_get_data(struct haptyk_buttons_t * data) {
