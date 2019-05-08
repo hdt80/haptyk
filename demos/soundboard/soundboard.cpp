@@ -2,7 +2,13 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include "haptyk.h"
+#include <vector>
+#include <string>
+#include <fstream>
+
+extern "C" {
+	#include "haptyk.h"
+}
 
 #define CLR_RED		"\x1b[31m"
 #define CLR_GREEN	"\x1b[32m"
@@ -32,7 +38,6 @@
 	#define debugf(fmt, ...) (void)0
 #endif
 
-
 void msgf(FILE* file, const char* tag, const char* color, const char* fmt, ...) {
 	fprintf(file, "%s[%s%s%s] ", CLR_RESET, color, tag, CLR_RESET);
 
@@ -42,6 +47,11 @@ void msgf(FILE* file, const char* tag, const char* color, const char* fmt, ...) 
 	va_end(args);
 }
 
+#define BUTTON_IS_NOW_PRESSED(x) \
+	curr_data.x == 0 && prev_data.x == 1
+
+#define BUTTON_NOW_NOT_PRESSED(x) \
+	curr_data.x == 1 && prev_data.x == 0
 
 // Print usage for this demo
 //
@@ -54,7 +64,7 @@ void print_usage() {
 //
 // config_file - Filename relative to the current directory
 //
-uint8_t load_sounds(const char* config_file);
+uint8_t load_sounds(const std::string& config_file);
 
 // Play a sound loaded from the config file
 //
@@ -62,17 +72,21 @@ uint8_t load_sounds(const char* config_file);
 //
 void play_sound(uint8_t index);
 
+std::vector<std::string> sound_file;
+
 int main(int argc, char** argv) {
 	if (argc != 2) {
 		print_usage();
 		return 1;
 	}
 
+	uint8_t sound_code = load_sounds("config");
 	// Load the sound config
-	if (load_sounds("config") == -1) {
+	if (sound_code == -1) {
 		errorf("Failed to load sound config file");
 		return 1;
 	}
+	infof("Loaded %d sounds\n", sound_code);
 
 	const char* bt_addr = argv[1];
 
@@ -96,32 +110,55 @@ int main(int argc, char** argv) {
 		if ((ret_code = haptyk_get_data(&prev_data)) != 0) {
 			errorf("Error reading button data from '%s'\n", bt_addr);
 		}
+		haptyk_print(&prev_data);
+
+		if (BUTTON_IS_NOW_PRESSED(b0)) { play_sound(0); }
+		if (BUTTON_IS_NOW_PRESSED(b1)) { play_sound(1); }
+		if (BUTTON_IS_NOW_PRESSED(b2)) { play_sound(2); }
+		if (BUTTON_IS_NOW_PRESSED(b3)) { play_sound(3); }
+		if (BUTTON_IS_NOW_PRESSED(b4)) { play_sound(4); }
+		if (BUTTON_IS_NOW_PRESSED(b5)) { play_sound(5); }
+		if (BUTTON_IS_NOW_PRESSED(b6)) { play_sound(6); }
+		if (BUTTON_IS_NOW_PRESSED(b7)) { play_sound(7); }
+		if (BUTTON_IS_NOW_PRESSED(b8)) { play_sound(8); }
+		if (BUTTON_IS_NOW_PRESSED(b9)) { play_sound(9); }
+		if (BUTTON_IS_NOW_PRESSED(b10)) { play_sound(10); }
+		if (BUTTON_IS_NOW_PRESSED(b11)) { play_sound(11); }
+
+		curr_data = prev_data;
 	}
 
 	return 0;
 }
 
-uint8_t load_sounds(const char* config_file) {
-	FILE* sound_file = fopen(config_file, "r");
+uint8_t load_sounds(const std::string& config_file) {
+	std::ifstream file(config_file);
+	std::string line;
 
-	if (sound_file == NULL) {
-		warnf("Failed to open config file '%s'\n", config_file);
-		return -1;
+	uint8_t sound_files = 0;
+
+	while (std::getline(file, line)) {
+		debugf("Read '%s'\n", line.c_str());
+
+		std::ifstream sfile(line);
+		if (sfile.good()) {
+			sound_file.push_back(line);
+			++sound_files;
+		} else {
+			warnf("Failed to open '%s'\n", line.c_str());
+		}
 	}
 
-	char* line = NULL;
-	ssize_t read;
-	size_t len = 0;
+	return sound_files;
+}
 
-	uint8_t sound_index = 0;
-	while ((read = getline(&line, &len, sound_file)) != -1) {
-		debugf("%d => '%s'\n", sound_index, line);
-
-		free(line);
-		line = NULL;
+void play_sound(uint8_t index) {
+	if (index > sound_file.size()) {
+		warnf("%d not loaded, only %d loaded", index, sound_file.size());
+		return;
 	}
 
-	fclose(sound_file);
+	const std::string& sound_name = sound_file[index];
 
-	return sound_index;
+	system(("aplay " + sound_name).c_str());
 }
