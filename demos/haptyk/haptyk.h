@@ -24,9 +24,9 @@ struct haptyk_buttons_t {
         uint8_t b11;
 };
 
-void haptyk_init(const char* address);
+uint8_t haptyk_init(const char* address);
 void haptyk_disconnect(const char* address);
-void haptyk_get_data(struct haptyk_buttons_t * data);
+uint8_t haptyk_get_data(struct haptyk_buttons_t * data);
 
 void haptyk_print(struct haptyk_buttons_t* data);
 
