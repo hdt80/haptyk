@@ -72,36 +72,41 @@ int main(int argc, char** argv) {
 	struct haptyk_buttons_t prev_data, curr_data;
 
 	haptyk_get_data(&curr_data);
+	system("stty -F /dev/ttyACM0 9600");
 
 	while (1) {
 		uint8_t ret_code;
 		prev_data = curr_data;
-		if ((ret_code = haptyk_get_data(&curr_data)) != 0) {
+		if ((ret_code = haptyk_get_data(&curr_data)) != 0) 
 			errorf("Error reading button data from '%s'\n", bt_addr);
-		}
-			if (curr_data.b3 != 0) //go forward 
-					//send F
-					//use stty to configure speed, cat to /dev/ttyS0 lol
-			else 
-					//send f
+		if (curr_data.b3 != 0) //go forward 
+			system("echo -n 'W' /dev/ttyACM0");
+		//send F
+		else 
+			system("echo -n 'w' /dev/ttyACM0");
+		//send f
 
-			if (curr_data.b5 != 0) //go backward
-					//send B
-			else 
-					//send b
+		if (curr_data.b5 != 0) //go backward
+			system("echo -n 'B' /dev/ttyACM0");
+		//send B
+		else 
+			system("echo -n 'b' /dev/ttyACM0");
+		//send b
 
-			if (curr_data.b0 != 0) //go right
-					//send R
-			else 
-					//send r
+		if (curr_data.b0 != 0) //go right
+			system("echo -n 'D' /dev/ttyACM0");
+		//send R
+		else 
+			system("echo -n 'd' /dev/ttyACM0");
+		//send r
 
-			if (curr_data.b7 != 0) //go left
-					//send L
-			else 
-					//send l
-		}
+		if (curr_data.b7 != 0) //go left
+			system("echo -n 'A' /dev/ttyACM0");
+		//send L
+		else 
+			system("echo -n 'a' /dev/ttyACM0");
+		//send l
 	}
-
 	return 0;
 }
 

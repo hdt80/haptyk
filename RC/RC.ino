@@ -22,16 +22,10 @@ This example code is in the public domain.
 http://www.arduino.cc/en/Tutorial/Blink
  */
 
-#include "../SDK/lib/gattlib.h"
-#include "../SDK/HaptykConnect.h"
-
 #define FORWARD 2
 #define BACKWARD 3
 #define RIGHT 8
 #define LEFT 9
-
-struct haptyk_buttons_t b1;
-const char* haptyk_addr = "E7:2F:7B:39:84:52";
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -46,7 +40,6 @@ void setup() {
 	digitalWrite(LEFT, HIGH);
 	digitalWrite(BACKWARD, HIGH);
 	Serial.begin(9600);
-	haptyk_init(haptyk_addr);
 }
 
 int incomingByte = 0;
@@ -74,35 +67,35 @@ void loop() {
 
 		switch(incomingByte) {
 
-			case 'F':
+			case 'W':
 				if (curr_backward == 1)
 					digitalWrite(FORWARD, 0);
 				break;
-			case 'f':
+			case 'w':
 					digitalWrite(FORWARD, 1);
 				break;
 
-			case 'B':
+			case 'S':
 				if (curr_forward == 1)
 					digitalWrite(BACKWARD, 0);
 				break;
-			case 'b':
+			case 's':
 					digitalWrite(BACKWARD, 1);
 				break;
 
-			case 'R':
+			case 'D':
 				if (curr_left == 1)
 					digitalWrite(RIGHT, 0);
 				break;
-			case 'r':
+			case 'd':
 					digitalWrite(RIGHT, 1);
 				break;
 
-			case 'L':
+			case 'A':
 				if (curr_right == 1)
 					digitalWrite(LEFT, 0);
 				break;
-			case 'l':
+			case 'a':
 					digitalWrite(LEFT, 1);
 				break;
 		}
