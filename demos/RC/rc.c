@@ -46,7 +46,7 @@ void msgf(FILE* file, const char* tag, const char* color, const char* fmt, ...) 
 // Print usage for this demo
 //
 void print_usage() {
-	printf("Usage: ./soundboard <addr>\n");
+	printf("Usage: ./rc <addr>\n");
 	printf("\taddr - Bluetooth address to connect");
 }
 
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
 
 	const char* bt_addr = argv[1];
 
-	infof("Haptyk soundboard demo\n");
+	infof("Haptyk rc demo\n");
 
 	infof("Connecting to Haptyk device '%s'\n", bt_addr);
 	uint8_t init_code = haptyk_init(bt_addr);
@@ -80,31 +80,31 @@ int main(int argc, char** argv) {
 		if ((ret_code = haptyk_get_data(&curr_data)) != 0) 
 			errorf("Error reading button data from '%s'\n", bt_addr);
 		if (curr_data.b3 != 0) //go forward 
-			system("echo -n 'W' /dev/ttyACM0");
+			system("echo -n 'W' > /dev/ttyACM0");
 		//send F
 		else 
-			system("echo -n 'w' /dev/ttyACM0");
+			system("echo -n 'w' > /dev/ttyACM0");
 		//send f
 
 		if (curr_data.b5 != 0) //go backward
-			system("echo -n 'B' /dev/ttyACM0");
+			system("echo -n 'B' > /dev/ttyACM0");
 		//send B
 		else 
-			system("echo -n 'b' /dev/ttyACM0");
+			system("echo -n 'b' > /dev/ttyACM0");
 		//send b
 
 		if (curr_data.b0 != 0) //go right
-			system("echo -n 'D' /dev/ttyACM0");
+			system("echo -n 'D' > /dev/ttyACM0");
 		//send R
 		else 
-			system("echo -n 'd' /dev/ttyACM0");
+			system("echo -n 'd' > /dev/ttyACM0");
 		//send r
 
 		if (curr_data.b7 != 0) //go left
-			system("echo -n 'A' /dev/ttyACM0");
+			system("echo -n 'A' > /dev/ttyACM0");
 		//send L
 		else 
-			system("echo -n 'a' /dev/ttyACM0");
+			system("echo -n 'a' > /dev/ttyACM0");
 		//send l
 	}
 	return 0;
