@@ -9,7 +9,8 @@ build: soundboard.cpp
 	g++ build/soundboard.o -L../haptyk/ -lhaptyk -lgattlib -o soundboard.out
 
 run: build
-	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../haptyk/ ./soundboard.out CD:FB:24:E5:2F:14
+	#LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../haptyk/ ./soundboard.out CD:FB:24:E5:2F:14
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../haptyk/ ./soundboard.out E7:2F:7B:39:84:52
 
 valgrind: build
 	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../haptyk/ valgrind ./soundboard.out CD:FB:24:E5:2F:14
