@@ -14,6 +14,7 @@ uint8_t init_MPR121(void) {
     uint8_t ACE_ARE = 0x03;
     uint8_t LSL = 180;
     uint8_t TL = 100;
+    uint8_t i = 0;
 
     //reset everything back to default
     writeByte(MPR121_ADDR, SOFT_RESET, 0x63);
@@ -27,7 +28,7 @@ uint8_t init_MPR121(void) {
 	}
 
     //set touch and release threshholds
-    for (uint8_t i = 0; i < 12; i++) 
+    for (i = 0; i < 12; i++) 
     {
         writeByte(MPR121_ADDR, ELE0_TOUCH_THRESHOLD + (i * 2), 12);
         writeByte(MPR121_ADDR, ELE0_RELEASE_THRESHOLD + (i * 2), 6);
